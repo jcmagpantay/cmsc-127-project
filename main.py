@@ -2,22 +2,50 @@ import mariadb
 import sys
 
 class User:
-    def __init__(self, memberId: int, name: str, gender: str, degreeProgram: str, accessLevel: int, username: str):
-        self.memberId = memberId
-        self.name = name
-        self.gender = gender
-        self.degreeProgram = degreeProgram
-        self.accessLevel = accessLevel
-        self.username = username
+    def __init__(self, memberId: int, name: str, gender: str, degreeProgram: str, accessLevel: int, username: str, academicYear: str, semester: int):
+        self.__memberId = memberId
+        self.__name = name
+        self.__gender = gender
+        self.__degreeProgram = degreeProgram
+        self.__accessLevel = accessLevel
+        self.__username = username
+        self.__academicYear = academicYear
+        self.__semester = semester
+    
+    def getMemberId(self):
+        return self.__memberId
     
     def getName(self):
-        return self.name
+        return self.__name
+    
+    def getGender(self):
+        return self.__gender
+    
+    def getDegreeProgram(self):
+        return self.__degreeProgram
     
     def getAccessLevel(self):
-        return self.accessLevel
+        return self.__accessLevel
     
     def getUsername(self):
-        return self.username
+        return self.__username
+    
+    def getAcademicYear(self):
+        return self.__academicYear
+    
+    def getSemester(self):
+        return self.__semester
+    
+    def setAcademicYear(self, academicYear):
+        self.__academicYear = academicYear
+
+    def setSemester(self, semester):
+        self.__semester = semester
+    
+    def setName(self, name):
+        self.__name = name
+    
+
 
 # Returns a User or None if login is a success or not
 # Fetches the associated member with the username
@@ -47,7 +75,8 @@ def login(cur):
     user = User(result[0], name, result[2], result[3], result[5], result[6])
     print("Logged in successfully! Welcome " + user.getName() + "!")
     return user
-    
+
+# ADMIN FUNCTIONS 
 def getCreateMemberInput():
     return
 
@@ -94,6 +123,7 @@ def auth(cur):
         if user:
             return user
 
+# Display-only admin menu
 def adminMenu():
     choice = -1
 
@@ -124,36 +154,43 @@ def adminMenu():
                 openReportsMenu()
             case 0:
                 break
-             
-def memberMenu():     
+
+# MEMBER FUNCTIONS
+
+# Display-only member menu
+def viewMyOrganizations(cur, user):
+    cur.execute("SELECT ")
+    return
+
+def viewMyFees():
+    return
+
+def viewMyProfile():
+    return
+      
+def memberMenu(cur, user):     
     choice = -1
 
     while choice != 0:
         print("====== MAIN MENU ======")
-        print("------- (Admin) -------")
-        print("[1] Create Member")
-        print("[2] View Members")
-        print("[3] Edit Member")
-        print("[4] Remove Member")
-        print("[5] Generate Reports")
+        print("------ (Members) ------")
+        print("[1] My Organizations")
+        print("[2] My Fees")
+        print("[3] My Profile")
         print("[0] Log Out")
         print("=======================")
 
-        
         choice = int(input("Choice: "))
 
         match choice:
             case 1:
-                getCreateMemberInput()
+                viewMyOrganizations(cur, user)
             case 2: 
-                getViewMemberInput()
+                viewMyFees()
             case 3: 
-                getEditMemberInput()
-            case 4:
-                getRemoveMemberInput()
-            case 5:
-                openReportsMenu()
+                viewMyProfile()
             case 0:
+                # Exit
                 break          
 
 def main():
@@ -183,10 +220,12 @@ def main():
     if user == None:
         conn.close()
         return
+    
+    accessLevel = user.getAccessLevel()
 
-    match user.accessLevel:
+    match accessLevel:
         case 1:
-            memberMenu()
+            memberMenu(cur, user)
         case 2:
             adminMenu()
 
