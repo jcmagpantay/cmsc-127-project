@@ -224,10 +224,7 @@ def updateFinancialRecord(cur, record_id, balance=None):
         print(f"Error occurred: {e}")
 
 
-def updateFee(cur, fee_id, payment_status=None, pay_date=None):
-    if payment_status is None:
-        print("No fields were modified")
-        return
+def updateFee(cur, fee_id, payment_status, pay_date):
     try:
         cur.execute(
             """UPDATE fee SET payment_status = ? AND pay_date = ? WHERE fee_id = ?""",
