@@ -47,14 +47,17 @@ def login(cur):
         print("No user found with that username")
         return None
     
-    matchedPassword = result[4]
-    name = result[1]
+    matchedPassword = result['password']
+    name = result['name']
 
     if matchedPassword != password:
         print("Invalid credentials!")
         return None
     
-    user = User(result[0], name, result[2], result[3], result[5], result[6])
+    academicYear = "2024-2025"
+    semester = 2
+    
+    user = User(result['member_id'], name, result['gender'], result['degree_program'], result['access_level'], result['username'], academicYear, semester)
     print("Logged in successfully! Welcome " + user.getName() + "!")
     return user
 
@@ -124,17 +127,19 @@ def viewMyFees():
 def viewMyProfile():
     return
       
-def memberMenu(cur, user):     
+def memberMenu(cur, user: User):     
     choice = -1
 
     while choice != 0:
-        print("====== MAIN MENU ======")
-        print("------ (Members) ------")
+        print("========== MAIN MENU ==========")
+        print("----------- (Member) ----------")
+        print(f'** A.Y. {user.getAcademicYear()} Semester {str(user.getSemester())} **')
+        print("===============================")
         print("[1] My Organizations")
         print("[2] My Fees")
         print("[3] My Profile")
         print("[0] Log Out")
-        print("=======================")
+        print("===============================")
 
         choice = int(input("Choice: "))
 
@@ -146,7 +151,7 @@ def memberMenu(cur, user):
             case 3: 
                 viewMyProfile()
             case 0:
-                # Exit
+                print("Goodbye!")
                 break          
 
 def main():
@@ -166,7 +171,7 @@ def main():
         sys.exit(1)
 
     # Get Cursor
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
 
     # Login/register prompt
     # Should only exit when user is existing or user presses 0
