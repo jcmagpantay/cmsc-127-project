@@ -22,3 +22,10 @@ except mariadb.Error as e:
 
 # Get Cursor
 cur = conn.cursor()
+
+cur.execute(
+    "SELECT first_name,last_name FROM employees WHERE first_name=?", 
+    (some_name,))
+
+for (first_name, last_name) in cur:
+    print(f"First Name: {first_name}, Last Name: {last_name}")
