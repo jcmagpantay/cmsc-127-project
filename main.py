@@ -1,15 +1,25 @@
 import mariadb
 import sys
 from user import User
+import os
+import platform
+
+def clear_console():
+    # Windows
+    if platform.system() == "Windows":
+        os.system("cls")
+    # macOS / Linux
+    else:
+        os.system("clear")
 
 # Shows the initial login, register, and exit menu
 def auth(cur):
-
     choice = -1 # Menu choice
     user = None # User instance
                 # -> that stores: name, username, accessLevel... etc
 
     while choice != 0:
+        clear_console()
         print("======= Welcome =======")
         print("[1] Login")
         print("[2] Register")
@@ -32,6 +42,8 @@ def auth(cur):
 # Returns a User or None if login is a success or not
 # Fetches the associated member with the username
 def login(cur):
+    clear_console()
+    print("***** LOG IN *****")
     username = input("Username: ")
     password = input("Password: ")
     
@@ -75,6 +87,7 @@ def getRemoveMemberInput():
     return
 
 def openReportsMenu():
+    clear_console()
     print("======= REPORTS =======")
     print("[1] View Organization Members")
     print("[2] View Unpaid Members")
@@ -84,9 +97,11 @@ def openReportsMenu():
 
 # Display-only admin menu
 def adminMenu():
+    
     choice = -1
 
     while choice != 0:
+        clear_console()
         print("====== MAIN MENU ======")
         print("------- (Admin) -------")
         print("[1] Create Member")
@@ -117,8 +132,34 @@ def adminMenu():
 # MEMBER FUNCTIONS
 
 # Display-only member menu
-def viewMyOrganizations(cur, user):
-    cur.execute("SELECT ")
+def viewMyOrganizations(cur, user: User):
+    clear_console()
+    print("======= MY ORGANIZATIONS ======")
+    cur.execute(
+"""
+    SELECT 
+        o.organization_name AS org_name,
+        mo.batch AS org_batch,
+        mo.status AS org_status,
+        mo.role AS org_role,
+        mo.committee AS org_committee
+    FROM organization o
+    JOIN member_org mo ON o.organization_id = mo.organization_id
+    JOIN member m ON m.member_id = mo.member_id
+    WHERE mo.member_id = ?
+""", (user.getMemberId(), ))  
+
+    for row in cur:
+        committee = row["org_committee"] if row["org_committee"] != None else "No Committee" 
+        batch = row["org_batch"] if row["org_batch"] != None else "No Batch" 
+        role = row["org_role"] if row["org_role"] != None else "No Role" 
+        status = row["org_status"] if row["org_status"] != None else "No Status"
+
+        print(f"{row["org_name"]} ({batch}) - {role}, {status} - {committee}")
+
+    print()
+    print()
+    input("-- Back to menu --")
     return
 
 def viewMyFees():
@@ -127,10 +168,11 @@ def viewMyFees():
 def viewMyProfile():
     return
       
-def memberMenu(cur, user: User):     
+def memberMenu(cur, user: User):   
     choice = -1
 
     while choice != 0:
+        clear_console()
         print("========== MAIN MENU ==========")
         print("----------- (Member) ----------")
         print(f'** A.Y. {user.getAcademicYear()} Semester {str(user.getSemester())} **')
