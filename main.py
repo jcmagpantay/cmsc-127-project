@@ -26,7 +26,7 @@ def login(cur):
         print("Invalid credentials!")
         return False
     
-    print("Logged in successfully! Welcome " + name)
+    print("Logged in successfully! Welcome " + name + "!")
     return True
     
 def getCreateMemberInput():
