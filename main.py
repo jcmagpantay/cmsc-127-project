@@ -135,8 +135,8 @@ def adminMenu():
 def viewMyOrganizations(cur, user: User):
     clear_console()
     print("======= MY ORGANIZATIONS ======")
-    cur.execute(
-"""
+
+    query = """
     SELECT 
         o.organization_name AS org_name,
         mo.batch AS org_batch,
@@ -147,7 +147,9 @@ def viewMyOrganizations(cur, user: User):
     JOIN member_org mo ON o.organization_id = mo.organization_id
     JOIN member m ON m.member_id = mo.member_id
     WHERE mo.member_id = ?
-""", (user.getMemberId(), ))  
+"""
+
+    cur.execute( query, (user.getMemberId(), ))  
 
     for row in cur:
         committee = row["org_committee"] if row["org_committee"] != None else "No Committee" 
@@ -155,7 +157,12 @@ def viewMyOrganizations(cur, user: User):
         role = row["org_role"] if row["org_role"] != None else "No Role" 
         status = row["org_status"] if row["org_status"] != None else "No Status"
 
-        print(f"{row["org_name"]} ({batch}) - {role}, {status} - {committee}")
+        print(f"{row['org_name']}")
+        print(f"├── Batch: {batch}")
+        print(f"├── Role: {role}")
+        print(f"├── Committee: {committee}")
+        print(f"└── Status: {status}")
+        print()
 
     print()
     print()
