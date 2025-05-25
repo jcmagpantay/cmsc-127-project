@@ -2,6 +2,33 @@ import mariadb
 import sys
 from user import User
 
+# Shows the initial login, register, and exit menu
+def auth(cur):
+
+    choice = -1 # Menu choice
+    user = None # User instance
+                # -> that stores: name, username, accessLevel... etc
+
+    while choice != 0:
+        print("======= Welcome =======")
+        print("[1] Login")
+        print("[2] Register")
+        print("[0] Exit")
+        print("=======================")
+
+        choice = int(input("Choice: "))
+
+        match choice:
+            case 1:
+                user = login(cur)
+            case 2:
+                user = login(cur)
+            case 0:
+                break
+            
+        if user:
+            return user
+
 # Returns a User or None if login is a success or not
 # Fetches the associated member with the username
 def login(cur):
@@ -51,32 +78,6 @@ def openReportsMenu():
     print("[3] ")
     return
 
-# Shows the initial login, register, and exit menu
-def auth(cur):
-
-    choice = -1 # Menu choice
-    user = None # User instance
-                # -> that stores: name, username, accessLevel... etc
-
-    while choice != 0:
-        print("======= Welcome =======")
-        print("[1] Login")
-        print("[2] Register")
-        print("[0] Exit")
-        print("=======================")
-
-        choice = int(input("Choice: "))
-
-        match choice:
-            case 1:
-                user = login(cur)
-            case 2:
-                user = login(cur)
-            case 0:
-                break
-            
-        if user:
-            return user
 
 # Display-only admin menu
 def adminMenu():
