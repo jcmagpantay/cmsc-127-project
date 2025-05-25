@@ -4,6 +4,7 @@ from user import User
 import os
 import platform
 
+
 def clear_console():
     # Windows
     if platform.system() == "Windows":
@@ -12,11 +13,14 @@ def clear_console():
     else:
         os.system("clear")
 
+
 # Shows the initial login, register, and exit menu
+
+
 def auth(cur):
-    choice = -1 # Menu choice
-    user = None # User instance
-                # -> that stores: name, username, accessLevel... etc
+    choice = -1  # Menu choice
+    user = None  # User instance
+    # -> that stores: name, username, accessLevel... etc
 
     while choice != 0:
         clear_console()
@@ -35,56 +39,72 @@ def auth(cur):
                 user = login(cur)
             case 0:
                 break
-            
+
         if user:
             return user
 
+
 # Returns a User or None if login is a success or not
 # Fetches the associated member with the username
+
+
 def login(cur):
     clear_console()
     print("***** LOG IN *****")
     username = input("Username: ")
     password = input("Password: ")
-    
     try:
-        cur.execute("SELECT * FROM member WHERE username=?", (username, ))
+        cur.execute("SELECT * FROM member WHERE username=?", (username,))
     except mariadb.Error as e:
         print(f"Error in login: {e}")
         sys.exit(1)
 
-    result = cur.fetchone();
-
-    if result == None:
+    result = cur.fetchone()
+    if result is None:
         print("No user found with that username")
         return None
-    
-    matchedPassword = result['password']
-    name = result['name']
+    matchedPassword = result["password"]
+    name = result["name"]
 
     if matchedPassword != password:
         print("Invalid credentials!")
         return None
-    
+
     academicYear = "2024-2025"
     semester = 2
-    
-    user = User(result['member_id'], name, result['gender'], result['degree_program'], result['access_level'], result['username'], academicYear, semester)
+
+    user = User(
+        result["member_id"],
+        name,
+        result["gender"],
+        result["degree_program"],
+        result["access_level"],
+        result["username"],
+        academicYear,
+        semester,
+    )
     print("Logged in successfully! Welcome " + user.getName() + "!")
     return user
 
-# ADMIN FUNCTIONS 
+
+# ADMIN FUNCTIONS
+
+
 def getCreateMemberInput():
     return
+
 
 def getViewMemberInput():
     return
 
+
 def getEditMemberInput():
     return
 
+
 def getRemoveMemberInput():
     return
+
 
 def openReportsMenu():
     clear_console()
@@ -94,9 +114,11 @@ def openReportsMenu():
     print("[3] ")
     return
 
+
 # Display-only admin menu
+
+
 def adminMenu():
-    
     choice = -1
 
     while choice != 0:
@@ -111,15 +133,14 @@ def adminMenu():
         print("[0] Log Out")
         print("=======================")
 
-        
         choice = int(input("Choice: "))
 
         match choice:
             case 1:
                 getCreateMemberInput()
-            case 2: 
+            case 2:
                 getViewMemberInput()
-            case 3: 
+            case 3:
                 getEditMemberInput()
             case 4:
                 getRemoveMemberInput()
@@ -128,15 +149,18 @@ def adminMenu():
             case 0:
                 break
 
+
 # MEMBER FUNCTIONS
 
 # Display-only member menu
+
+
 def viewMyOrganizations(cur, user: User):
     clear_console()
     print("======= MY ORGANIZATIONS ======")
 
     query = """
-    SELECT 
+    SELECT
         o.organization_name AS org_name,
         mo.batch AS org_batch,
         mo.status AS org_status,
@@ -148,13 +172,15 @@ def viewMyOrganizations(cur, user: User):
     WHERE mo.member_id = ?
 """
 
-    cur.execute( query, (user.getMemberId(), ))  
+    cur.execute(query, (user.getMemberId(),))
 
     for row in cur:
-        committee = row["org_committee"] if row["org_committee"] != None else "No Committee" 
-        batch = row["org_batch"] if row["org_batch"] != None else "No Batch" 
-        role = row["org_role"] if row["org_role"] != None else "No Role" 
-        status = row["org_status"] if row["org_status"] != None else "No Status"
+        committee = (
+            row["org_committee"] if row["org_committee"] is not None else "No Committee"
+        )
+        batch = row["org_batch"] if row["org_batch"] is not None else "No Batch"
+        role = row["org_role"] if row["org_role"] is not None else "No Role"
+        status = row["org_status"] if row["org_status"] is not None else "No Status"
 
         print(f"{row['org_name']}")
         print(f"├── Batch: {batch}")
@@ -168,20 +194,23 @@ def viewMyOrganizations(cur, user: User):
     input("-- Back to menu --")
     return
 
+
 def viewMyFees():
     return
 
+
 def viewMyProfile():
     return
-      
-def memberMenu(cur, user: User):   
+
+
+def memberMenu(cur, user: User):
     choice = -1
 
     while choice != 0:
         clear_console()
         print("========== MAIN MENU ==========")
         print("----------- (Member) ----------")
-        print(f'** A.Y. {user.getAcademicYear()} Semester {str(user.getSemester())} **')
+        print(f"** A.Y. {user.getAcademicYear()} Semester {str(user.getSemester())} **")
         print("===============================")
         print("[1] My Organizations")
         print("[2] My Fees")
@@ -194,14 +223,18 @@ def memberMenu(cur, user: User):
         match choice:
             case 1:
                 viewMyOrganizations(cur, user)
-            case 2: 
+            case 2:
                 viewMyFees()
-            case 3: 
+            case 3:
                 viewMyProfile()
             case 0:
                 print("Goodbye!")
-                break     
+                break
+
+
 # QUERIES
+
+
 def createUser(cur, name, gender, degree_program, password, access_level, username):
     try:
         cur.execute(
@@ -401,7 +434,103 @@ def updateFee(cur, fee_id, payment_status, pay_date):
         )
         print("Succesfully edited fee")
     except mariadb.Error as e:
-        print(f"Error occurred: {e}")     
+        print(f"Error occurred: {e}")
+
+
+def getAllOrgMembers(cur, organization_name):
+    clear_console()
+    print(f"======= MEMBERS OF {organization_name.upper()} ======")
+
+    try:
+        cur.execute(
+            """
+            SELECT m.name AS member_name,
+                   m.gender AS member_gender,
+                   m.degree_program AS member_program,
+                   mo.batch AS member_batch,
+                   mo.status AS member_status,
+                   mo.committee AS member_committee
+            FROM member m
+            JOIN member_org mo ON m.member_id = mo.member_id
+            JOIN organization o ON mo.organization_id = o.organization_id
+            WHERE o.organization_name = ?
+        """,
+            (organization_name,),
+        )
+    except mariadb.Error as e:
+        print(f"Error has occurred: {e}")
+        return
+
+    rows_found = False
+    for row in cur:
+        rows_found = True
+
+        name = row["member_name"]
+        gender = row["member_gender"] or "N/A"
+        program = row["member_program"] or "N/A"
+        batch = row["member_batch"] or "No Batch"
+        status = row["member_status"] or "No Status"
+        committee = row["member_committee"] or "No Committee"
+
+        print(f"{name}")
+        print(f"├── Gender: {gender}")
+        print(f"├── Degree Program: {program}")
+        print(f"├── Batch: {batch}")
+        print(f"├── Committee: {committee}")
+        print(f"└── Status: {status}")
+        print()
+
+    if not rows_found:
+        print("No members found for this organization.")
+
+    print()
+    input("-- Back to menu --")
+
+
+def getAllUnpaidMembers(cur, organization_name, academic_year, semester):
+    try:
+        cur.execute(
+            """SELECT DISTINCT m.name, m.role, m.gender, m.degree_program, mo.batch, mo.status, mo.committee
+                FROM MEMBER m
+                JOIN MEMBER_ORG mo ON m.member_id = mo.member_id
+                JOIN FEE f on mo.member_id = f.member_id
+                JOIN FINANCIAL_RECORD fr on f.record_id = fr.record_id
+                JOIN ORGANIZATION o ON fr.organization_id = o.organization_id
+                WHERE o.organization_name = ?
+                AND f.payment_status = "Unpaid" AND fr.academic_year = ? and fr.semester = ?;
+                """,
+            (organization_name, academic_year, semester),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+    rows_found = False
+    for row in cur:
+        rows_found = True
+
+        name = row["member_name"]
+        role = row["member_role"] or "No Role"
+        gender = row["member_gender"] or "N/A"
+        program = row["member_program"] or "N/A"
+        batch = row["member_batch"] or "No Batch"
+        status = row["member_status"] or "No Status"
+        committee = row["member_committee"] or "No Committee"
+
+        print(f"{name}")
+        print(f"├── Role: {role}")
+        print(f"├── Gender: {gender}")
+        print(f"├── Degree Program: {program}")
+        print(f"├── Batch: {batch}")
+        print(f"├── Committee: {committee}")
+        print(f"└── Status: {status}")
+        print()
+
+    if not rows_found:
+        print("No unpaid members found for the given semester.")
+
+    print()
+    input("-- Back to menu --")
+
 
 def main():
     print("Connecting to database")
@@ -410,10 +539,10 @@ def main():
     try:
         conn = mariadb.connect(
             user="root",
-            password="useruser",
-            host="127.0.0.1", # Connects to http://localhost:3306
-            port=3306,        # Assuming the MariaDB instance is there
-            database="127project"
+            password="astidb",
+            host="127.0.0.1",  # Connects to http://localhost:3306
+            port=3306,  # Assuming the MariaDB instance is there
+            database="127project",
         )
     except mariadb.Error as e:
         print(f"Error connecting to MariaDB Platform: {e}")
@@ -427,10 +556,10 @@ def main():
     user = auth(cur)
 
     # Exit program when User is None
-    if user == None:
+    if user is None:
         conn.close()
         return
-    
+
     accessLevel = user.getAccessLevel()
 
     match accessLevel:
@@ -440,6 +569,7 @@ def main():
             adminMenu()
 
     conn.close()
+
 
 if __name__ == "__main__":
     main()
