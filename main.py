@@ -488,6 +488,10 @@ def getAllOrgMembers(cur, organization_name):
 
 
 def getAllUnpaidMembers(cur, organization_name, academic_year, semester):
+    clear_console()
+    print(f"======= UNPAID MEMBERS OF {organization_name.upper()} ======")
+    print(f"Academic Year: {academic_year} | Semester: {semester}")
+    print()
     try:
         cur.execute(
             """SELECT DISTINCT m.name, m.role, m.gender, m.degree_program, mo.batch, mo.status, mo.committee
@@ -529,6 +533,447 @@ def getAllUnpaidMembers(cur, organization_name, academic_year, semester):
         print("No unpaid members found for the given semester.")
 
     print()
+    input("-- Back to menu --")
+
+
+def viewUnpaidFees(cur, name):
+    clear_console()
+    print(f"======= UNPAID FEES for {name.upper()} ======")
+    try:
+        cur.execute(
+            """SELECT o.organization_name, f.fee_type, f.amount, f.due_date, f.payment_status, fr.academic_year, fr.semester,
+        from member m JOIN fee f on m.member_id = f.member_id JOIN financial_record fr on f.record_id = fr.record_id
+        JOIN organization o ON fr.organization_id = o.organization_id WHERE m.name = ? AND f.payment_status = "Unpaid" """,
+            (name,),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        org = row["organization_name"]
+        fee_type = row["fee_type"]
+        amount = row["amount"]
+        due_date = row["due_date"]
+        year = row["academic_year"]
+        semester = row["semester"]
+        status = row["payment_status"]
+
+        print(f"{org}")
+        print(f"├── Fee Type: {fee_type}")
+        print(f"├── Amount: ₱{amount:.2f}")
+        print(f"├── Due Date: {due_date}")
+        print(f"├── Academic Year: {year}")
+        print(f"├── Semester: {semester}")
+        print(f"└── Status: {status}")
+        print()
+
+    if not rows_found:
+        print("No unpaid fees found for this member.")
+
+    input("-- Back to menu --")
+
+
+def viewExecByYear(cur, organization_name, academic_year):
+    clear_console()
+    print(
+        f"======= EXECUTIVE MEMBERS ({academic_year}) - {
+            organization_name.upper()
+        } ======"
+    )
+    try:
+        cur.execute(
+            """SELECT m.name, m.role, mo.committee, mo.academic_year, mo.semester FROM member m JOIN member_org mo ON m.member_id = mo.member_id
+        JOIN organization o ON mo.organization_id = o.organization_id WHERE o.organization_name = ? AND mo.committee = "Executive" AND mo.academic_year = ?""",
+            (organization_name, academic_year),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        print(f"{row['name']}")
+        print(f"├── Role: {row['role']}")
+        print(f"├── Committee: {row['committee']}")
+        print(f"├── Academic Year: {row['academic_year']}")
+        print(f"└── Semester: {row['semester']}")
+        print()
+
+    if not rows_found:
+        print("No executive members found for this academic year.")
+
+    input("-- Back to menu --")
+
+
+def viewRoleHistory(cur, organization_name, role):
+    clear_console()
+    print(f"======= ROLE HISTORY: {role.upper()} - {organization_name.upper()} ======")
+    try:
+        cur.execute(
+            """
+                SELECT
+                m.name, mo.role, mo.committee, mo.academic_year, mo.semester
+                FROM MEMBER m
+                JOIN MEMBER_ORG mo ON m.member_id = mo.member_id
+                JOIN ORGANIZATION o ON mo.organization_id = o.organization_id
+                WHERE o.organization_name = ?
+                AND mo.role = ?
+                ORDER BY mo.academic_year DESC;
+                    """,
+            (organization_name, role),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        print(f"{row['name']}")
+        print(f"├── Role: {row['role']}")
+        print(f"├── Committee: {row['committee']}")
+        print(f"├── Academic Year: {row['academic_year']}")
+        print(f"└── Semester: {row['semester']}")
+        print()
+
+    if not rows_found:
+        print("No members found with that role in the selected organization.")
+
+    input("-- Back to menu --")
+
+
+def viewAllLatePayments(cur, organization_name, academic_year, semester):
+    clear_console()
+    print(
+        f"======= LATE PAYMENTS - {organization_name.upper()} ({academic_year}, {
+            semester
+        }) ======"
+    )
+    try:
+        cur.execute(
+            """
+                SELECT m.name, f.*
+                FROM
+                    fee f
+                JOIN
+                    financial_record fr ON f.record_id = fr.record_id
+                JOIN
+                    organization org ON fr.organization_id = org.organization_id
+                JOIN
+                    member_org mo ON org.organization_id = mo.organization_id
+                JOIN
+                    member m ON mo.member_id = m.member_id
+                WHERE
+                    f.pay_date > f.due_date
+                AND
+                    f.payment_status = 'paid'
+                AND
+                    org.organization_name = ?
+                AND
+                    fr.academic_year = ?
+                AND
+                    fr.semester = ?;
+        """,
+            (organization_name, academic_year, semester),
+        )
+
+    except mariadb.Error as e:
+        print(f"Error has occurred: {e}")
+        return
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        print(f"{row['name']}")
+        print(f"├── Fee Type: {row['fee_type']}")
+        print(f"├── Amount: {row['amount']}")
+        print(f"├── Due Date: {row['due_date']}")
+        print(f"├── Payment Date: {row['pay_date']}")
+        print(f"└── Status: {row['payment_status']}")
+        print()
+
+    if not rows_found:
+        print("No late payments found for the given criteria.")
+
+    input("-- Back to menu --")
+
+
+def viewActiveProportion(cur, organization_name, limit):
+    clear_console()
+    print(f"======= ACTIVE vs INACTIVE - {organization_name.upper()} =======")
+    try:
+        cur.execute(
+            """
+            SELECT
+                org.organization_name,
+                mo.academic_year,
+                mo.semester,
+                SUM(CASE WHEN mo.status = 'Active' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS `Active Percentage`,
+                SUM(CASE WHEN mo.status = 'Inactive' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS `Inactive Percentage`
+            FROM
+                member_org mo
+            JOIN
+                organization org ON mo.organization_id = org.organization_id
+            WHERE
+                org.organization_name = ?
+            GROUP BY
+                mo.academic_year,
+                mo.semester
+            ORDER BY
+                mo.academic_year DESC,
+                mo.semester DESC
+            LIMIT ?;
+        """,
+            (organization_name, limit),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        print(f"{row['academic_year']} - {row['semester']}")
+        print(f"├── Active Members:   {row['active_percentage']}%")
+        print(f"└── Inactive Members: {row['inactive_percentage']}%")
+        print()
+
+    if not rows_found:
+        print("No data found for the specified organization.")
+
+    input("-- Back to menu --")
+
+
+def viewAlumniByDate(cur, organization_name, given_date):
+    clear_console()
+    print(f"======= ALUMNI - {organization_name.upper()} (Up to {given_date}) ======")
+    try:
+        cur.execute(
+            """
+
+                SELECT mem.* FROM
+                    member_org mo
+                JOIN
+                    member mem ON mo.member_id = mem.member_id
+                JOIN
+                    organization org ON mo.organization_id = org.organization_id
+                WHERE
+                    mo.academic_year =
+                        CASE
+                        WHEN
+                            MONTH(?) BETWEEN 6 AND 12
+                        THEN
+                            CONCAT(YEAR(?), "-", YEAR(?) + 1)
+                        WHEN
+                            MONTH(?) BETWEEN 1 AND 5
+                        THEN
+                            CONCAT(YEAR(?) - 1, "-", YEAR(?))
+                        END
+                AND
+                    mo.semester =
+                        CASE
+                        WHEN
+                            MONTH(?) BETWEEN 6 AND 12
+                        THEN
+                            1
+                        WHEN
+                            MONTH(?) BETWEEN 1 AND 5
+                        THEN
+                            2
+                        END
+                AND
+                    org.organization_name = ?
+                AND
+                    mo.status = 'Alumni';
+                        """,
+            (
+                given_date,
+                given_date,
+                given_date,
+                given_date,
+                given_date,
+                given_date,
+                organization_name,
+            ),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+
+    rows_found = False
+    columns = [desc[0] for desc in cur.description]
+    for row in cur:
+        rows_found = True
+        record = dict(zip(columns, row))
+        print(f"{record.get('name', 'N/A')}")
+        print(f"├── Member ID: {record.get('member_id', 'N/A')}")
+        print(f"├── Gender: {record.get('gender', 'N/A')}")
+        print(f"├── Degree Program: {record.get('degree_program', 'N/A')}")
+        print(f"├── Username: {record.get('username', 'N/A')}")
+        print(f"└── Access Level: {record.get('access_level', 'N/A')}")
+        print()
+
+    if not rows_found:
+        print("No alumni found for the given date.")
+
+    input("-- Back to menu --")
+
+
+def viewFeesAsOfDate(cur, organization_name, given_date):
+    clear_console()
+    print(
+        f"======= FEE SUMMARY FOR {organization_name.upper()} AS OF {
+            given_date
+        } =======\n"
+    )
+    try:
+        (
+            cur.execute(
+                """
+
+                SELECT
+                    org.organization_name,
+                    SUM(CASE WHEN f.payment_status = 'paid' THEN f.amount ELSE 0 END) AS "Paid Fees",
+                    SUM(CASE WHEN f.payment_status = 'unpaid' THEN f.amount ELSE 0 END) AS "Unpaid Fees"
+                FROM
+                    fee f
+                JOIN
+                    financial_record fr ON f.record_id = fr.record_id
+                JOIN
+                    organization org ON fr.organization_id = org.organization_id
+                JOIN
+                    member_org mo ON org.organization_id = mo.organization_id
+                WHERE
+                    mo.academic_year =
+                        CASE
+                        WHEN
+                            MONTH(?) BETWEEN 6 AND 12
+                        THEN
+                            CONCAT(YEAR(?), "-", YEAR(?) + 1)
+                        WHEN
+                            MONTH(?) BETWEEN 1 AND 5
+                        THEN
+                            CONCAT(YEAR(?) - 1, "-", YEAR(?))
+                        END
+                AND
+                    mo.semester =
+                        CASE
+                        WHEN
+                            MONTH(?) BETWEEN 6 AND 12
+                        THEN
+                            1
+                        WHEN
+                            MONTH(?) BETWEEN 1 AND 5
+                        THEN
+                            2
+                        END
+                AND
+                    org.organization_name = ?;
+                        """,
+                (
+                    given_date,
+                    given_date,
+                    given_date,
+                    given_date,
+                    given_date,
+                    given_date,
+                    organization_name,
+                ),
+            ),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+        return
+    rows_found = False
+    columns = [desc[0] for desc in cur.description]
+
+    for row in cur:
+        rows_found = True
+        record = dict(zip(columns, row))
+        print(f"Paid Fees:   {record.get('paid_fees', 0):,.2f}")
+        print(f"Unpaid Fees: {record.get('unpaid_fees', 0):,.2f}\n")
+
+    if not rows_found:
+        print("No fee records found for the given criteria.")
+
+    input("-- Back to menu --")
+
+
+def viewHighestDebt(cur, organization_name, semester, academic_year):
+    clear_console()
+    print(
+        f"======= HIGHEST DEBTORS - {organization_name.upper()} ({
+            academic_year
+        }, Semester {semester}) =======\n"
+    )
+    try:
+        (
+            cur.execute(
+                """
+
+        SELECT 
+            debt1.name1, 
+            debt1.debt 
+        FROM
+            (SELECT 
+                m.member_id, m.name AS name1, SUM(f.amount) AS debt
+            FROM 
+                member m
+            JOIN 
+                member_org mo ON m.member_id = mo.member_id
+            JOIN
+                organization o ON mo.organization_id = o.organization_id
+            JOIN
+                financial_record fr ON o.organization_id = fr.organization_id
+            JOIN 
+                fee f ON fr.record_id = f.record_id
+            WHERE
+                f.payment_status = 'unpaid'
+            AND
+                o.organization_name = 'ACSS'
+            AND
+                mo.semester = 2
+            AND
+                mo.academic_year = '2023-2024'
+            GROUP BY
+                m.member_id) AS debt1
+        WHERE
+            debt = (SELECT MAX(debt) FROM (SELECT SUM(f.amount) AS debt
+                   FROM 
+                        member m
+                   JOIN 
+                        member_org mo ON m.member_id = mo.member_id
+                   JOIN
+                        organization o ON mo.organization_id = o.organization_id
+                   JOIN
+                        financial_record fr ON o.organization_id = fr.organization_id
+                   JOIN 
+                        fee f ON fr.record_id = f.record_id
+                   WHERE
+                        f.payment_status = 'unpaid'
+                    AND
+                        o.organization_name = ?
+                    AND
+                        mo.semester = ?
+                    AND
+                        mo.academic_year = ?
+                   GROUP BY
+                        m.member_id) 
+                   AS debt2);
+                """,
+                (organization_name, semester, academic_year),
+            ),
+        )
+    except mariadb.Error as e:
+        print(f"Error occurred: {e}")
+    rows_found = False
+    for row in cur:
+        rows_found = True
+        name, debt = row
+        print(f"Name: {name}")
+        print(f"Debt: {debt:,.2f}\n")
+
+    if not rows_found:
+        print("No unpaid debts found for the given criteria.")
+
     input("-- Back to menu --")
 
 
