@@ -1,5 +1,6 @@
 import sys
 from tkinter import *
+from tkinter import ttk
 from tkinter import messagebox
 import mariadb
 from user import User
@@ -115,12 +116,75 @@ class LogInPage(Frame):
 class MemberMenu(Frame):
     def __init__(self, master):
         super().__init__(master)
-        user = self.master.user
+        self.user = self.master.user
         Label(self, text="Main Menu", fg="Black",font=("Helvetica", 18)).pack(pady=10)
-        Label(self, text="(Member)", fg="Black",font=("Helvetica", 18)).pack(pady=10)
-        Label(self, text=f"A.Y. {user.getAcademicYear()} semester {user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack(pady=10)
-        Button(self, text="Logout", bg="Red", command=lambda: master.show_screen(LandingPage)).pack()
+        Label(self, text="(Member)", fg="Black",font=("Helvetica", 18)).pack()
+        Label(self, text=f"A.Y. {self.user.getAcademicYear()} Semester {self.user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack()
+        Button(self, text="My Organizations",font=("Helvetica", 12), command = self.viewMyOrganizations).pack(pady=2.5)
+        Button(self, text="My Fees",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="My Profile",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="Logout",fg="white", bg="Red",font=("Helvetica", 12), command=lambda: master.show_screen(LandingPage)).pack(pady=2.5)
 
+    def viewMyOrganizations(self):
+        viewMyOrgs = viewMyOrganizations(self.master)
+        self.master.screens[viewMyOrganizations] = viewMyOrgs
+        viewMyOrgs.place(relwidth=1, relheight=1)
+        self.master.show_screen(viewMyOrganizations)
+                                   
+
+class viewMyOrganizations(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.user = self.master.user
+        #create table
+        self.pack(fill=BOTH, expand=True)                                                               
+        self.tree = ttk.Treeview(self, columns=("Organization Name", "Batch", "Role", "Committee", "Status"), show="headings", height=5)
+        self.tree.heading("Organization Name", text="Organization Name", anchor=CENTER)
+        self.tree.heading("Batch", text="Batch", anchor=CENTER)
+        self.tree.heading("Role", text="Role", anchor=CENTER)
+        self.tree.heading("Committee", text="Committee", anchor=CENTER)
+        self.tree.heading("Status", text="Status", anchor=CENTER)
+        self.tree.column("Organization Name", anchor=CENTER)
+        self.tree.column("Batch", anchor=CENTER)
+        self.tree.column("Role", anchor=CENTER)
+        self.tree.column("Committee", anchor=CENTER)
+        self.tree.column("Status", anchor=CENTER)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=RIGHT, fill=Y)
+        
+        Button(self, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(pady=10)
+        self.getOrganizations()
+        
+        
+        
+    def getOrganizations(self):
+        query = """
+                SELECT 
+                    o.organization_name AS org_name,
+                    mo.batch AS org_batch,
+                    mo.status AS org_status,
+                    mo.role AS org_role,
+                    mo.committee AS org_committee
+                FROM organization o
+                JOIN member_org mo ON o.organization_id = mo.organization_id
+                JOIN member m ON m.member_id = mo.member_id
+                WHERE mo.member_id = ?
+            """
+        cur = self.master.cur
+        cur.execute( query, (self.user.getMemberId(), ))
+        # Clear old data
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        for row in cur:
+            self.tree.insert("",END,text="1",values=(row['org_name'] ,
+                                            row["org_batch"] if row["org_batch"] != None else "No Batch",
+                                            row["org_role"] if row["org_role"] != None else "No Role" ,
+                                            row["org_committee"] if row["org_committee"] != None else "No Committee",
+                                            row["org_status"] if row["org_status"] != None else "No Status"))
+        self.tree.pack(fill=BOTH, expand=True)
 
 if __name__ == "__main__":
     app = App()
