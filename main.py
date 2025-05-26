@@ -369,9 +369,7 @@ def updateMemberOrg(
         print("No fields were modified")
         return
     values.append(member_id, organization_id)
-    query = f"UPDATE organization SET {
-        ', '.join(modifiedFields)
-    } WHERE member_id = ? AND organization_id = ?"
+    query = f"UPDATE organization SET {', '.join(modifiedFields)} WHERE member_id = ? AND organization_id = ?"
     try:
         cur.execute(query, values)
         print("Successfully updated member!")
@@ -410,7 +408,7 @@ def main():
     try:
         conn = mariadb.connect(
             user="root",
-            password="useruser",
+            password="justinejr",
             host="127.0.0.1", # Connects to http://localhost:3306
             port=3306,        # Assuming the MariaDB instance is there
             database="127project"
