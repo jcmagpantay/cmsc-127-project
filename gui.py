@@ -22,7 +22,11 @@ def connectMariaDB():
 
     # Get Cursor
     cur = conn.cursor(dictionary=True)
-    return cur
+    return conn,cur
+
+# number validator
+def validate_number(P):
+    return (P in ("1", "2")) or P == ""
 
 # root app initialization
 class App(Tk):
@@ -32,7 +36,7 @@ class App(Tk):
         self.geometry("1080x1080")
         self.resizable(False,False)
         #maria db cursor as attribute
-        self.cur = connectMariaDB()
+        self.conn,self.cur = connectMariaDB()
         #hold the current user
         self.user = None
         #storage for screens
@@ -63,9 +67,11 @@ class LogInPage(Frame):
     def __init__(self, master):
         super().__init__(master)
         Label(self, text="Log in", fg="Black",font=("Helvetica", 18)).pack(pady=10)
+        # username
         Label(self, text="Username", fg="Black",font=("Helvetica", 12)).pack()
         self.usernameEntry = Entry(self)
         self.usernameEntry.pack()
+        # password
         Label(self, text="Password", fg="Black",font=("Helvetica", 12)).pack()
         self.passwordEntry = Entry(self,show="*")
         self.passwordEntry.pack()
@@ -121,7 +127,7 @@ class MemberMenu(Frame):
         Label(self, text="(Member)", fg="Black",font=("Helvetica", 18)).pack()
         Label(self, text=f"A.Y. {self.user.getAcademicYear()} Semester {self.user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack()
         Button(self, text="My Organizations",font=("Helvetica", 12), command = self.viewMyOrganizations).pack(pady=2.5)
-        Button(self, text="My Fees",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="My Fees",font=("Helvetica", 12), command = self.viewMyFees).pack(pady=2.5)
         Button(self, text="My Profile",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Logout",fg="white", bg="Red",font=("Helvetica", 12), command=lambda: master.show_screen(LandingPage)).pack(pady=2.5)
 
@@ -130,6 +136,11 @@ class MemberMenu(Frame):
         self.master.screens[viewMyOrganizations] = viewMyOrgs
         viewMyOrgs.place(relwidth=1, relheight=1)
         self.master.show_screen(viewMyOrganizations)
+    def viewMyFees(self):
+        viewMyFees = viewFees(self.master)
+        self.master.screens[viewFees] = viewMyFees
+        viewMyFees.place(relwidth=1, relheight=1)
+        self.master.show_screen(viewFees)
                                    
 
 class viewMyOrganizations(Frame):
@@ -154,13 +165,26 @@ class viewMyOrganizations(Frame):
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=RIGHT, fill=Y)
-        
         Button(self, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(pady=10)
-        self.getOrganizations()
+        top_frame = Frame(self, height=60)
+        top_frame.pack(fill=X)
+        # input for acad year
+        vcmd = (self.register(validate_number), '%P')
+        Label(top_frame, text="AcadYear(****-****): ", fg="Black",font=("Helvetica", 12)).pack(side=LEFT)
+        self.acadYearEntry = Entry(top_frame)
+        self.acadYearEntry.pack(side=LEFT,padx=2, pady=5)
+        # input for semester
+        Label(top_frame, text="Semester(1/2): ", fg="Black",font=("Helvetica", 12)).pack(side=LEFT)
+        self.semEntry = Entry(top_frame, validate='key', validatecommand=vcmd)
+        self.semEntry.pack(side=LEFT,padx=2, pady=5)
+        Button(top_frame, text="Search",font=("Helvetica", 12), command=self.getOrganizations).pack(side=LEFT,pady=10)
+        
         
         
         
     def getOrganizations(self):
+        semesterInput = self.semEntry.get()
+        acadYearInput = self.acadYearEntry.get()
         query = """
                 SELECT 
                     o.organization_name AS org_name,
@@ -171,10 +195,10 @@ class viewMyOrganizations(Frame):
                 FROM organization o
                 JOIN member_org mo ON o.organization_id = mo.organization_id
                 JOIN member m ON m.member_id = mo.member_id
-                WHERE mo.member_id = ?
+                WHERE mo.member_id = ? and mo.academic_year = ? and mo.semester = ?
             """
         cur = self.master.cur
-        cur.execute( query, (self.user.getMemberId(), ))
+        cur.execute( query, (self.user.getMemberId(),acadYearInput,semesterInput, ))
         # Clear old data
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -185,6 +209,144 @@ class viewMyOrganizations(Frame):
                                             row["org_committee"] if row["org_committee"] != None else "No Committee",
                                             row["org_status"] if row["org_status"] != None else "No Status"))
         self.tree.pack(fill=BOTH, expand=True)
+
+class viewFees(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.user = self.master.user
+        self.pack(fill=BOTH, expand=True) 
+        # Navigation bar frame
+        nav_frame = Frame(self, bg="lightgrey", height=60)
+        nav_frame.pack(fill=X)
+        # Inner frame to center buttons
+        self.center_frame = Frame(nav_frame, bg="lightgrey")
+        self.center_frame.pack(expand=True)
+        Button(self.center_frame, text="Paid",font=("Helvetica", 12), bg="green", fg="white", width=10, command=self.getAllPaid).pack(side=LEFT, padx = 5)
+        Button(self.center_frame, text="Unpaid",font=("Helvetica", 12), bg="red", fg="white", width=10, command=self.getAllUnpaid).pack(side=LEFT, padx = 5)
+        Button(self.center_frame, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu), width=10).pack(side=LEFT,padx=10)
+        tree_frame = Frame(self)
+        tree_frame.pack(fill=BOTH, expand=True)
+
+        # Scrollbars
+        self.y_scrollbar = Scrollbar(tree_frame, orient=VERTICAL)
+        self.x_scrollbar = Scrollbar(tree_frame, orient=HORIZONTAL)                                                  
+        self.tree = ttk.Treeview(tree_frame, columns=("Fee ID","Record ID","Organization Name", "Fee Type", "Amount", "Due Date", "Status","Academic Year", "Semester"), show="headings", height=5, yscrollcommand=self.y_scrollbar.set, xscrollcommand=self.x_scrollbar.set)
+        self.tree.heading("Fee ID", text="Fee ID", anchor=CENTER)
+        self.tree.heading("Record ID", text="Record ID", anchor=CENTER)
+        self.tree.heading("Organization Name", text="Organization Name", anchor=CENTER)
+        self.tree.heading("Fee Type", text="Fee Type", anchor=CENTER)
+        self.tree.heading("Amount", text="Amount", anchor=CENTER)
+        self.tree.heading("Due Date", text="Due Date", anchor=CENTER)
+        self.tree.heading("Status", text="Status", anchor=CENTER)
+        self.tree.heading("Academic Year", text="Academic Year", anchor=CENTER)
+        self.tree.heading("Semester", text="Semester", anchor=CENTER)
+        self.tree.column("Fee ID", anchor=CENTER)
+        self.tree.column("Record ID", anchor=CENTER)
+        self.tree.column("Organization Name", anchor=CENTER)
+        self.tree.column("Fee Type", anchor=CENTER)
+        self.tree.column("Amount", anchor=CENTER)
+        self.tree.column("Due Date", anchor=CENTER)
+        self.tree.column("Status", anchor=CENTER)
+        self.tree.column("Academic Year", anchor=CENTER)
+        self.tree.column("Semester", anchor=CENTER)
+
+        #button to be showed
+        self.payBtn = Button(self.center_frame, text="Pay Selected",font=("Helvetica", 12), bg="green", fg="white", width=10, command=self.pay)
+        self.deselectBtn = Button(self.center_frame, text="DESELECT",font=("Helvetica", 12), fg="black", width=10, command=lambda:self.tree.selection_remove(self.tree.selection()))
+
+    def getAllUnpaid(self):
+        query = '''
+            SELECT 
+            f.fee_id,f.record_id, o.organization_name, f.fee_type, f.amount, f.due_date, f.payment_status, fr.academic_year, fr.semester
+            from MEMBER m
+            JOIN FEE f on m.member_id = f.member_id
+            JOIN FINANCIAL_RECORD fr on f.record_id = fr.record_id
+            JOIN ORGANIZATION o ON fr.organization_id = o.organization_id
+            WHERE
+            m.name = ? 
+            AND f.payment_status = "Unpaid";
+            '''
+        cur = self.master.cur
+        cur.execute( query, (self.user.getName(), ))
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        for row in cur:
+            self.tree.insert("",END,text="1",values=(row["fee_id"],row["record_id"],row['organization_name'] ,
+                                        row["fee_type"] ,
+                                        row["amount"]  ,
+                                        row["due_date"] ,
+                                        row["payment_status"],
+                                        row["academic_year"],
+                                        row["semester"]))
+        
+        self.y_scrollbar.config(command=self.tree.yview)
+        self.x_scrollbar.config(command=self.tree.xview)
+        self.y_scrollbar.pack(side=RIGHT, fill=Y)
+        self.x_scrollbar.pack(side=BOTTOM, fill=X)
+        self.tree.pack(fill=BOTH, expand=True)
+        if not self.payBtn.winfo_ismapped():  # Only pack if not already packed
+            self.payBtn.pack(side=LEFT, padx=5)
+        if not self.deselectBtn.winfo_ismapped():  # Only pack if not already packed
+            self.deselectBtn.pack(side=LEFT)
+
+    def pay(self):
+        selected = self.tree.selection()
+        payquery = '''UPDATE fee SET payment_status = "Paid" WHERE fee_id = ?;'''
+        addbalancequery = '''UPDATE financial_record SET balance=balance + ? WHERE record_id = ? '''
+        cur = self.master.cur
+        conn = self.master.conn
+        for item in selected:
+            row_values = self.tree.item(item, "values")
+            fee_id = row_values[0]
+            amount = row_values[4]
+            record_id = row_values[1]
+            cur.execute( payquery, (fee_id, ))
+            conn.commit()
+            cur.execute( addbalancequery, (amount,record_id, ))
+            conn.commit()
+
+
+        self.getAllUnpaid()
+
+           
+
+    def getAllPaid(self):
+        query = '''
+            SELECT 
+            f.fee_id,f.record_id, o.organization_name, f.fee_type, f.amount, f.due_date, f.payment_status, fr.academic_year, fr.semester
+            from MEMBER m
+            JOIN FEE f on m.member_id = f.member_id
+            JOIN FINANCIAL_RECORD fr on f.record_id = fr.record_id
+            JOIN ORGANIZATION o ON fr.organization_id = o.organization_id
+            WHERE
+            m.name = ? 
+            AND f.payment_status = "Paid";
+            '''
+        cur = self.master.cur
+        cur.execute( query, (self.user.getName(), ))
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        for row in cur:
+            self.tree.insert("",END,text="1",values=(row["fee_id"],row["record_id"],row['organization_name'] ,
+                                        row["fee_type"] ,
+                                        row["amount"]  ,
+                                        row["due_date"] ,
+                                        row["payment_status"],
+                                        row["academic_year"],
+                                        row["semester"]))
+        self.y_scrollbar.config(command=self.tree.yview)
+        self.x_scrollbar.config(command=self.tree.xview)
+        self.y_scrollbar.pack(side=RIGHT, fill=Y)
+        self.x_scrollbar.pack(side=BOTTOM, fill=X)
+        self.tree.pack(fill=BOTH, expand=True)
+        if self.payBtn.winfo_ismapped():  # hide if packed
+            self.payBtn.pack_forget()
+        if self.deselectBtn.winfo_ismapped():  # hide if packed
+            self.deselectBtn.pack_forget()
+            
+
 
 if __name__ == "__main__":
     app = App()
