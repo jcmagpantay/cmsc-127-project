@@ -424,39 +424,56 @@ class Database:
         date_issued,
         fee_type,
         payment_status,
-        pay_date,
-        description,
         member_id,
-        record_id,
-    ):
+        academic_year,
+        semester,
+        organization_id,
+        description = None,
+        pay_date = None
+)   :
         try:
-            self.cur.execute(
-                """INSERT INTO fee(`amount`, `due_date`, `date_issued`,
-            `fee_type`,`payment_status`, `pay_date`,
-            `description`, `member_id`, `record_id`)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    amount,
-                    due_date,
-                    date_issued,
-                    fee_type,
-                    payment_status,
-                    pay_date,
-                    description,
-                    member_id,
-                    record_id,
-                ),
-            )
+            # Find record first, if not found, create new.
+            self.cur.execute("""
+                SELECT record_id FROM financial_record
+                WHERE organization_id = ? AND academic_year = ? AND semester = ?
+            """, (organization_id, academic_year, semester))
+
+            result = self.cur.fetchone()
+
+            if result:
+                record_id = result['record_id']
+            else:
+            
+                self.cur.execute("""
+                    INSERT INTO financial_record (balance, organization_id, academic_year, semester)
+                    VALUES (?, ?, ?, ?)
+                """, (0, organization_id, academic_year, semester))
+                record_id = self.cur.lastrowid
+                print(f"Created new financial record: {record_id}")
+
+            # 3. Insert the fee using the resolved record_id
+            self.cur.execute("""
+                INSERT INTO fee (
+                    amount, due_date, date_issued, fee_type,
+                    payment_status, pay_date, description,
+                    member_id, record_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                amount, due_date, date_issued, fee_type,
+                payment_status, pay_date, description,
+                member_id, record_id
+            ))
+
+            if self.cur.rowcount == 1:
+                self.conn.commit()
+                print("Fee added!")
+                return self.cur.lastrowid
+            else:
+                print("Insert failed")
+                return None
+
         except mariadb.Error as e:
             print(f"Error occurred: {e}")
-            return None
-        
-        if self.cur.rowcount == 1:
-            print(f"Fee added!")
-            self.conn.commit()
-            return self.cur.lastrowid
-        else:
-            print("Insert failed")
             return None
 
     # Returns `id` on successful update

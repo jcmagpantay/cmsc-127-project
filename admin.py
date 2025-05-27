@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 from database import Database
+from datetime import date
 
 import mariadb
 
@@ -237,6 +238,9 @@ class ViewMembersPage(Frame):
         self.deleteBtn = Button(options, text="Delete", font=("Helvetica", 12), state="disabled", command= self.on_delete)
         self.deleteBtn.pack(side=LEFT, padx=4)
 
+        self.addFeeBtn = Button(options, text="Add Fee", font=("Helvetica", 12), state="disabled", command= self.on_add_fee)
+        self.addFeeBtn.pack(side=LEFT, padx=4)
+
         Label(options, text="Name", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=4)
         self.nameVar = StringVar()
         Entry(options, textvariable=self.nameVar).pack(side=LEFT, padx=4)
@@ -300,14 +304,17 @@ class ViewMembersPage(Frame):
                 row["degree_program"], row["password"], row["access_level"],
                 row["username"]))
     
+    # Enables / disables button if tree is selected
     def on_tree_select(self, event):
         selected = self.tree.selection()
         if selected:
             self.editBtn.config(state="normal")  
             self.deleteBtn.config(state="normal")  
+            self.addFeeBtn.config(state="normal")  
         else:
             self.editBtn.config(state="disabled") 
             self.deleteBtn.config(state="disabled") 
+            self.addFeeBtn.config(state="disabled") 
 
     def goToEditMemberPage(self):
         if hasattr(self, 'currentMember'):
@@ -315,9 +322,14 @@ class ViewMembersPage(Frame):
             self.master.currentMember = self.currentMember
             self.master.show_page(EditMemberPage)
 
+    def goToAddFeePage(self):
+        if hasattr(self, 'currentMember'):
+            print("I have that")
+            self.master.currentMember = self.currentMember
+            self.master.show_page(AddFeePage)
+
     def on_edit(self):
         selected_values = self.tree.item(self.tree.selection()[0], 'values')
-        print(selected_values)
         self.currentMember = selected_values
         self.goToEditMemberPage()
     
@@ -330,6 +342,12 @@ class ViewMembersPage(Frame):
         else:
             messagebox.showerror("Error", f"Failed to delete member {selected_values[1]}.")
         self.refresh()
+
+    def on_add_fee(self):
+        selected_values = self.tree.item(self.tree.selection()[0], 'values')
+        print(selected_values)
+        self.currentMember = selected_values
+        self.goToAddFeePage()
         
 
 class ViewOrganizationalMembersPage(Frame):
@@ -747,7 +765,7 @@ class AddFinancialRecordPage(Frame):
         self.academicYearField.grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
-        # Academic Year
+        # Semester
         Label(container, text="Semester*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
         self.semesterField = LimitedEntry(container, char_limit=10)
         self.semesterField.grid(row=row, column=1, padx=8, pady=4)
@@ -789,6 +807,139 @@ class AddFinancialRecordPage(Frame):
         except mariadb.Error as e:
             print(f"Error in fetching organizations: {e}")
             return {}
+        
+class AddFeePage(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.cur = self.master.cur
+        self.db:Database = self.master.db
+        self.currentMember = self.master.currentMember
+        organizations = self.getMemberOrganizations()
+        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
+        orgDisplay.sort()
+        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+
+        container = Frame(self)
+        container.pack(anchor='n', pady=16)
+
+        row = 0
+
+        Label(container, text=f"Add a fee for {self.currentMember[1]}", fg="Black", font=("Helvetica", 18)).grid(row=row, column=0, columnspan=2, pady=(10, 20))
+        row += 1
+
+        Label(container, text="Select organization", fg="Black", font=("Helvetica", 12)).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        self.selectedOrg = StringVar()
+        organizationSelect = ttk.Combobox(container, textvariable=self.selectedOrg, values=orgDisplay)
+        organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
+        row += 1
+
+        # AMT
+        Label(container, text="Amount*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.amountField = LimitedEntry(container, char_limit=10)
+        self.amountField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Due Date
+        Label(container, text="Due Date*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.dueDateField = LimitedEntry(container, char_limit=10)
+        self.dueDateField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Fee Type
+        Label(container, text="Fee Type*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.feeTypeField = LimitedEntry(container, char_limit=10)
+        self.feeTypeField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Description
+        Label(container, text="Decription", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.descriptionField = LimitedEntry(container, char_limit=10)
+        self.descriptionField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Academic Year
+        Label(container, text="Academic Year*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.academicYearField = LimitedEntry(container, char_limit=10)
+        self.academicYearField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Semester
+        Label(container, text="Semester", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.semesterField = LimitedEntry(container, char_limit=10)
+        self.semesterField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Button
+        Button(container, text="Add fee", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        Button(container, text="Go Back", font=("Helvetica", 12), command=self.goBack).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+    def goBack(self):
+        self.master.show_page(ViewMembersPage)
+        
+    def getMemberOrganizations(self):
+        memberID = self.currentMember[0]
+        try:
+            self.cur.execute("""
+                    SELECT
+                        o.organization_id,
+                        o.organization_name
+                        
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ?
+                """, (memberID, ))
+            rows = self.cur.fetchall()
+            print("Rows fetched from DB:", rows)
+            return {row['organization_id']: row['organization_name'] for row in rows}
+        except mariadb.Error as e:
+            print(f"Error in fetching organizations: {e}")
+            return {}
+        
+    def onSubmit(self):
+        memberID = self.currentMember[0]
+
+        selectedOrg = self.selectedOrg.get()
+
+        if (len(selectedOrg) == 0 or self.amountField.isEmpty() or self.dueDateField.isEmpty() or self.feeTypeField.isEmpty() or self.academicYearField.isEmpty() or self.semesterField.isEmpty()):
+            messagebox.showerror("Error", "Please fill in the required fields")
+
+        orgID = self.idLookup[selectedOrg]
+        description = self.descriptionField.get().strip() or None
+        amount = self.amountField.get().strip()
+        dueDate = self.dueDateField.get().strip()
+        feeType = self.feeTypeField.get().strip()
+        academicYear = self.academicYearField.get().strip()
+        semester = self.semesterField.get().strip()
+
+        feeID = self.db.create_fee(
+            amount=amount,
+            due_date= dueDate,
+            fee_type= feeType,
+            payment_status= "Unpaid",
+            academic_year= academicYear,
+            date_issued=date.today().strftime("%Y-%m-%d"),
+            description=description,
+            member_id=memberID,
+            organization_id=orgID,
+            semester= semester,
+        )
+
+        if (feeID is None):
+            messagebox.showerror("Error", "Failed to create fee")
+            return
+        else:
+            messagebox.showinfo("Success", f"Fee of PHP {amount} was created for {self.currentMember[1]}!")
+            self.goBack()
+
+
+
     
 class LimitedEntry(Entry):
     def __init__(self, master=None, char_limit=10, **kwargs):
