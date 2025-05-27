@@ -203,29 +203,39 @@ class Database:
             print(f"Error has occurred: {e}")
             return []
         
-    def get_all_unpaid_members(self, organization_id, academic_year, semester):
+    def get_all_unpaid_members(self, organization_id=None, academic_year=None, semester=None):
         try:
-            self.cur.execute(
-                """SELECT DISTINCT m.name, m.role, m.gender, m.degree_program, mo.batch, mo.status, mo.committee
-                    FROM MEMBER m
-                    JOIN MEMBER_ORG mo ON m.member_id = mo.member_id
-                    JOIN FEE f on mo.member_id = f.member_id
-                    JOIN FINANCIAL_RECORD fr on f.record_id = fr.record_id
-                    JOIN ORGANIZATION o ON fr.organization_id = o.organization_id
-                    WHERE o.organization_id = ?
-                    AND f.payment_status = "Unpaid" AND fr.academic_year = ? and fr.semester = ?;
-                    """,
-                (organization_id, academic_year, semester),
-            )
+            query = """
+                SELECT DISTINCT m.member_id, m.name, f.amount, mo.role, m.gender, m.degree_program,
+                    mo.batch, mo.status, mo.committee,
+                    fr.academic_year, fr.semester
+                FROM member m
+                JOIN member_org mo ON m.member_id = mo.member_id
+                JOIN fee f ON mo.member_id = f.member_id
+                JOIN financial_record fr ON f.record_id = fr.record_id
+                JOIN organization o ON fr.organization_id = o.organization_id
+                WHERE f.payment_status = "Unpaid"
+            """
 
+            params = []
+
+            if organization_id is not None:
+                query += " AND o.organization_id = ?"
+                params.append(organization_id)
+
+            if academic_year is not None:
+                query += " AND fr.academic_year = ?"
+                params.append(academic_year)
+
+            if semester is not None:
+                query += " AND fr.semester = ?"
+                params.append(semester)
+
+            self.cur.execute(query, params)
             result = self.cur.fetchall()
 
-            if result is None:
-                print("get_my_organizations: None returned")
-                return []
+            return result if result is not None else []
 
-            return result
-        
         except mariadb.Error as e:
             print(f"Error occurred: {e}")
             return []
