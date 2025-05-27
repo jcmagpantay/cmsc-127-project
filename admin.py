@@ -76,7 +76,7 @@ class AddMemberPage(Frame):
         row += 1
 
         self.selectedOrg = StringVar()
-        organizationSelect = ttk.Combobox(container, textvariable=selectedOrg, values=orgDisplay)
+        organizationSelect = ttk.Combobox(container, textvariable=self.selectedOrg, values=orgDisplay)
         organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
         row += 1
 
