@@ -15,14 +15,17 @@ class AdminMenu(Frame):
         Label(self, text="(Admin)", fg="Black",font=("Helvetica", 18)).pack()
         Label(self, text=f"A.Y. {self.user.getAcademicYear()} Semester {self.user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack()
         Button(self, text="Add a Member",font=("Helvetica", 12), command=self.goToAddMemberPage).pack(pady=2.5)
-        Button(self, text="View All Members",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View All Members",font=("Helvetica", 12), command=self.goToViewMembersPage).pack(pady=2.5)
+        Button(self, text="View Organization Membership",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Edit Member",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Remove Member",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Generate Reports",font=("Helvetica", 12)).pack(pady=2.5)
-        Button(self, text="Logout",fg="white", bg="Red",font=("Helvetica", 12)).pack(pady=2.5)
     
     def goToAddMemberPage(self):
         self.master.show_page(AddMemberPage)
+
+    def goToViewMembersPage(self):
+        self.master.show_page(ViewMembersPage)
 
 class AddMemberPage(Frame):
     def __init__(self, master):
@@ -124,8 +127,6 @@ class AddMemberPage(Frame):
         Button(container, text="Go Back", font=("Helvetica", 12), command=self.goBack).grid(row=row, column=0, columnspan=2, pady=4)
         row += 1
 
-        
-    
     def goBack(self):
         self.master.show_page(AdminMenu)
 
@@ -192,6 +193,46 @@ class AddMemberPage(Frame):
             print(f"Error in fetching organizations: {e}")
             return {}
 
+class ViewMembersPage(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.db:Database = self.master.db
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.pack(fill=BOTH, expand=True)
+
+        Label(self, text="View Members", fg="Black", font=("Helvetica", 18)).pack(pady=8)
+        Button(self, text="Back", font=("Helvetica", 12), command=self.goBack).pack(anchor=W)
+
+        columns = ("ID", "Name", "Gender", "Degree Program", "Password", "Access Level", "Username")
+
+        tree = ttk.Treeview(self, columns=columns, show="headings")
+        tree.pack(fill="both", expand=True)
+
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor=CENTER)
+        
+        data = self.db.get_all_members()
+
+        for row in data:
+            tree.insert("", "end", values=(row["member_id"], row["name"], row["gender"], row["degree_program"], row["password"], row["access_level"], row["username"]))
+
+    def goBack(self):
+        self.master.show_page(AdminMenu)
+
+class ViewOrganizationalMembersPage(Frame):
+     def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.db:Database = self.master.db
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.pack(fill=BOTH, expand=True)
+
+        
+
 class LimitedEntry(Entry):
     def __init__(self, master=None, char_limit=10, **kwargs):
         self.char_limit = char_limit
@@ -213,3 +254,4 @@ class LimitedEntry(Entry):
     
     def isEmpty(self):
         return len(self.var.get()) == 0
+    

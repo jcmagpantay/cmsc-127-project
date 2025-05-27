@@ -90,6 +90,23 @@ class Database:
         except mariadb.Error as e:
             print(f"Error in get_my_organizations: {e}")
             return []
+        
+    def get_all_members(self):
+        query = "SELECT * FROM member"  
+        try:
+            self.cur.execute(query,)
+
+            result = self.cur.fetchall()
+
+            if result is None:
+                print("get_all_members: None returned")
+                return []
+
+            return result
+        except mariadb.Error as e:
+            print(f"Error has occurred: {e}")
+            return []
+
     
     def get_all_organization_members(self, organization_id):
         query = """
