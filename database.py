@@ -108,26 +108,62 @@ class Database:
             return []
 
     
-    def get_all_organization_members(self, organization_id):
+    def get_all_organization_members(
+        self,
+        organization_id=None,
+        status=None,
+        committee=None,
+        role=None,
+        academic_year=None,
+        semester=None,
+    ):
         query = """
-                SELECT m.name AS member_name,
-                    m.gender AS member_gender,
-                    m.degree_program AS member_program,
-                    mo.batch AS member_batch,
-                    mo.status AS member_status,
-                    mo.committee AS member_committee
-                FROM member m
-                JOIN member_org mo ON m.member_id = mo.member_id
-                JOIN organization o ON mo.organization_id = o.organization_id
-                WHERE o.organization_id = ?
-            """
-        try:
-            self.cur.execute(query, (organization_id,),)
+            SELECT 
+                m.member_id AS member_id,
+                m.name AS member_name,
+                o.organization_name AS organization_name,
+                mo.batch AS member_batch,
+                mo.status AS member_status,
+                mo.committee AS member_committee,
+                mo.role AS role,
+                mo.academic_year AS academic_year,
+                mo.semester AS semester
+            FROM member m
+            JOIN member_org mo ON m.member_id = mo.member_id
+            JOIN organization o ON mo.organization_id = o.organization_id
+        """
 
+        params = []
+        conditions = []
+
+        if organization_id is not None:
+            conditions.append("o.organization_id = ?")
+            params.append(organization_id)
+        if status is not None:
+            conditions.append("mo.status LIKE ?")
+            params.append(f"%{status}%")
+        if committee is not None:
+            conditions.append("mo.committee LIKE ?")
+            params.append(f"%{committee}%")
+        if role is not None:
+            conditions.append("mo.role LIKE ?")
+            params.append(f"%{role}%")
+        if academic_year is not None:
+            conditions.append("mo.academic_year = ?")
+            params.append(academic_year)
+        if semester is not None:
+            conditions.append("mo.semester = ?")
+            params.append(semester)
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        try:
+            self.cur.execute(query, tuple(params))
             result = self.cur.fetchall()
 
             if result is None:
-                print("get_my_organizations: None returned")
+                print("get_all_organization_members: None returned")
                 return []
 
             return result
