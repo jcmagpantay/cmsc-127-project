@@ -162,14 +162,16 @@ class MemberMenu(Frame):
         self.master.screens[viewMyOrganizations] = viewMyOrgs
         viewMyOrgs.place(relwidth=1, relheight=1)
         self.master.show_screen(viewMyOrganizations)
+
     def viewMyFees(self):
         viewMyFees = viewFees(self.master)
         self.master.screens[viewFees] = viewMyFees
         viewMyFees.place(relwidth=1, relheight=1)
         self.master.show_screen(viewFees)
+
     def viewMyProfile(self):
         viewProfile = viewMyProfile(self.master)
-        self.master.screens[viewMyProfile] = viewMyProfile
+        self.master.screens[viewMyProfile] = viewProfile
         viewProfile.place(relwidth=1, relheight=1)
         self.master.show_screen(viewMyProfile)
                                    
@@ -515,9 +517,64 @@ class viewFees(Frame):
 class viewMyProfile(Frame):
     def __init__(self, master):
         super().__init__(master)
-        self.card = Frame(self, height="150", width="100", bg="red")
-        self.card.pack()
+        self.user = self.master.user
+        self.card = Frame(self, height="200", width="500", bg="white", bd=2, relief="raised")
+        self.card.place(relx=0.5, rely=0.5-0.1,anchor="center")
+         # will prevent the card from scaling down when using a frame inside it
+        self.card.pack_propagate(False)
+        # Spacer above content (expands to push content down)
+        self.top_spacer = Frame(self.card, bg='white')
+        self.top_spacer.pack(side=TOP, fill='both', expand=True)
+        #Header
+        Label(self.top_spacer, text="My Profile", fg="Black",font=("Helvetica", 16, "bold italic"), bg="white").pack(side=LEFT)
+        # frame for the name
+        self.name = Frame(self.card, height="40", bg="white")
+        self.name.pack(fill=X, pady="5")
+        Label(self.name, text="Name: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.readName = Entry(self.name, font=("Helvetica", 12), bg="#F8F8F8")
+        self.readName.insert(0, f"{self.user.getName()}")
+        self.readName.config(state="readonly")
+        self.readName.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #username
+        self.userName = Frame(self.card, height="40", bg="white")
+        self.userName.pack(fill=X, pady="5")
+        Label(self.userName, text="Username: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.readUserName = Entry(self.userName, font=("Helvetica", 12), bg="#F8F8F8")
+        self.readUserName.insert(0, f"{self.user.getUsername()}")
+        self.readUserName.config(state="readonly")
+        self.readUserName.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #gender
+        self.gender = Frame(self.card, height="40", bg="white")
+        self.gender.pack(fill=X, pady="5")
+        Label(self.gender, text="Gender: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.readGender = Entry(self.gender, font=("Helvetica", 12), bg="#F8F8F8")
+        self.readGender.insert(0, f"{self.user.getGender()}")
+        self.readGender.config(state="readonly")
+        self.readGender.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #degree program
+        self.degProg = Frame(self.card, height="40", bg="white")
+        self.degProg.pack(fill=X, pady="5")
+        Label(self.degProg, text="Degree Program: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.readDegProg = Entry(self.degProg, font=("Helvetica", 12), bg="#F8F8F8")
+        self.readDegProg.insert(0, f"{self.user.getDegreeProgram()}")
+        self.readDegProg.config(state="readonly")
+        self.readDegProg.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        self.bot_spacer = Frame(self.card, bg='white')
+        self.bot_spacer.pack(side=BOTTOM, fill='both', expand=True)
+        self.buttons = Frame(self, width="500")
+        self.buttons.place(relx=0.5, rely=0.5 + 0.2, anchor="n")
+        Button(self.buttons, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(side=LEFT, padx="15")
+        Button(self.buttons, text="Edit",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(side=RIGHT, padx="15")
 
+        def editMyProfile(self):
+            edit = viewMyProfile(self.master)
+            self.master.screens[viewMyProfile] = viewProfile
+            viewProfile.place(relwidth=1, relheight=1)
+            self.master.show_screen(viewMyProfile)
+
+class editMyProfile(Frame):
+    def __init__(self, master):
+        super().__init__(master)
                 
 
 
