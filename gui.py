@@ -57,7 +57,8 @@ class App(Tk):
 class LandingPage(Frame):
     def __init__(self, master):
         super().__init__(master)
-        Label(self, text="Welcome to O-SOM", fg="Black",font=("Helvetica", 18)).pack()
+        self.logo = PhotoImage(file="O-SOM.png")
+        Label(self, image=self.logo).pack()
         Button(self, text="Log In", font=("Helvetica", 12),command=lambda:master.show_screen(LogInPage)).pack(pady=10)
         Button(self, text="Exit", font=("Helvetica", 12),command=master.destroy).pack(pady=10)
 
