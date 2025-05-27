@@ -154,7 +154,7 @@ class MemberMenu(Frame):
         Label(self, text=f"A.Y. {self.user.getAcademicYear()} Semester {self.user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack()
         Button(self, text="My Organizations",font=("Helvetica", 12), command = self.viewMyOrganizations).pack(pady=2.5)
         Button(self, text="My Fees",font=("Helvetica", 12), command = self.viewMyFees).pack(pady=2.5)
-        Button(self, text="My Profile",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="My Profile",font=("Helvetica", 12), command = self.viewMyProfile).pack(pady=2.5)
         Button(self, text="Logout",fg="white", bg="Red",font=("Helvetica", 12), command=lambda: master.show_screen(LandingPage)).pack(pady=2.5)
 
     def viewMyOrganizations(self):
@@ -167,6 +167,11 @@ class MemberMenu(Frame):
         self.master.screens[viewFees] = viewMyFees
         viewMyFees.place(relwidth=1, relheight=1)
         self.master.show_screen(viewFees)
+    def viewMyProfile(self):
+        viewProfile = viewMyProfile(self.master)
+        self.master.screens[viewMyProfile] = viewMyProfile
+        viewProfile.place(relwidth=1, relheight=1)
+        self.master.show_screen(viewMyProfile)
                                    
 
 class viewMyOrganizations(Frame):
@@ -177,20 +182,26 @@ class viewMyOrganizations(Frame):
         self.user = self.master.user
         #create table
         self.pack(fill=BOTH, expand=True)                                                               
-        self.tree = ttk.Treeview(self, columns=("Organization Name", "Batch", "Role", "Committee", "Status"), show="headings", height=5)
+        self.tree = ttk.Treeview(self, columns=("Organization Name", "Batch", "Role", "Committee", "Status", "Academic Year", "Semester"), show="headings", height=5)
         self.tree.heading("Organization Name", text="Organization Name", anchor=CENTER)
         self.tree.heading("Batch", text="Batch", anchor=CENTER)
         self.tree.heading("Role", text="Role", anchor=CENTER)
         self.tree.heading("Committee", text="Committee", anchor=CENTER)
         self.tree.heading("Status", text="Status", anchor=CENTER)
+        self.tree.heading("Academic Year", text="Academic Year", anchor=CENTER)
+        self.tree.heading("Semester", text="Semester", anchor=CENTER)
         self.tree.column("Organization Name", anchor=CENTER)
         self.tree.column("Batch", anchor=CENTER)
         self.tree.column("Role", anchor=CENTER)
         self.tree.column("Committee", anchor=CENTER)
         self.tree.column("Status", anchor=CENTER)
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side=RIGHT, fill=Y)
+        self.tree.column("Academic Year", anchor=CENTER)
+        self.tree.column("Semester", anchor=CENTER)
+        scrollbarY = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        scrollbarX = ttk.Scrollbar(self, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
+        scrollbarY.pack(side=RIGHT, fill=Y)
+        scrollbarX.pack(side=BOTTOM, fill=X)
         Button(self, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(pady=10)
         top_frame = Frame(self, height=60)
         top_frame.pack(fill=X)
@@ -203,7 +214,13 @@ class viewMyOrganizations(Frame):
         Label(top_frame, text="Semester(1/2): ", fg="Black",font=("Helvetica", 12)).pack(side=LEFT)
         self.semEntry = Entry(top_frame, validate='key', validatecommand=vcmd)
         self.semEntry.pack(side=LEFT,padx=2, pady=5)
-        Button(top_frame, text="Search",font=("Helvetica", 12), command=self.getOrganizations).pack(side=LEFT,pady=10)
+        #filter for status
+        Label(top_frame, text="Status: ", fg="Black",font=("Helvetica", 12)).pack(side=LEFT)
+        options=["Active", "Inactive", "Alumni", "Expelled", "All"]
+        self.dropDown = ttk.Combobox(top_frame, values=options)
+        self.dropDown.pack(side=LEFT, pady=2)
+        self.dropDown.set("Active")
+        Button(top_frame, text="Search",font=("Helvetica", 12), command=self.getOrganizations).pack(side=LEFT,padx=5)
         
         
         
@@ -211,20 +228,143 @@ class viewMyOrganizations(Frame):
     def getOrganizations(self):
         semesterInput = self.semEntry.get()
         acadYearInput = self.acadYearEntry.get()
-        query = """
-                SELECT 
+        statusInput = self.dropDown.get()
+        cur = self.master.cur
+        # filtering
+        if semesterInput == "" and acadYearInput == "":
+            if statusInput == "All":
+                query = """
+                    SELECT 
                     o.organization_name AS org_name,
                     mo.batch AS org_batch,
                     mo.status AS org_status,
                     mo.role AS org_role,
-                    mo.committee AS org_committee
-                FROM organization o
-                JOIN member_org mo ON o.organization_id = mo.organization_id
-                JOIN member m ON m.member_id = mo.member_id
-                WHERE mo.member_id = ? and mo.academic_year = ? and mo.semester = ?
-            """
-        cur = self.master.cur
-        cur.execute( query, (self.user.getMemberId(),acadYearInput,semesterInput, ))
+                    mo.committee AS org_committee,
+                    mo.academic_year,
+                    mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(), ))
+            else:
+                query = """
+                    SELECT 
+                    o.organization_name AS org_name,
+                    mo.batch AS org_batch,
+                    mo.status AS org_status,
+                    mo.role AS org_role,
+                    mo.committee AS org_committee,
+                    mo.academic_year,
+                    mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ? and mo.status = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(),statusInput, ))
+        elif semesterInput == "":
+            if statusInput == "All":
+                query = """
+                    SELECT 
+                    o.organization_name AS org_name,
+                    mo.batch AS org_batch,
+                    mo.status AS org_status,
+                    mo.role AS org_role,
+                    mo.committee AS org_committee,
+                    mo.academic_year,
+                    mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ? and mo.academic_year = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(),acadYearInput, ))
+            else:
+                query = """
+                    SELECT 
+                        o.organization_name AS org_name,
+                        mo.batch AS org_batch,
+                        mo.status AS org_status,
+                        mo.role AS org_role,
+                        mo.committee AS org_committee,
+                        mo.academic_year,
+                        mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ? and mo.academic_year = ? and mo.status = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(),acadYearInput,statusInput, ))
+        elif acadYearInput == "":
+            if statusInput == "All":
+                query = """
+                    SELECT 
+                    o.organization_name AS org_name,
+                    mo.batch AS org_batch,
+                    mo.status AS org_status,
+                    mo.role AS org_role,
+                    mo.committee AS org_committee,
+                    mo.academic_year,
+                    mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ? and mo.semester = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(),semesterInput, ))
+            else:
+                query = """
+                    SELECT 
+                        o.organization_name AS org_name,
+                        mo.batch AS org_batch,
+                        mo.status AS org_status,
+                        mo.role AS org_role,
+                        mo.committee AS org_committee,
+                        mo.academic_year,
+                        mo.semester
+                    FROM organization o
+                    JOIN member_org mo ON o.organization_id = mo.organization_id
+                    JOIN member m ON m.member_id = mo.member_id
+                    WHERE mo.member_id = ? and mo.semester = ? and mo.status = ?;
+                    """
+                cur.execute( query, (self.user.getMemberId(),semesterInput,statusInput, ))    
+        else:
+            if statusInput == "All":
+                query = """
+                        SELECT 
+                            o.organization_name AS org_name,
+                            mo.batch AS org_batch,
+                            mo.status AS org_status,
+                            mo.role AS org_role,
+                            mo.committee AS org_committee,
+                            mo.academic_year,
+                            mo.semester
+                        FROM organization o
+                        JOIN member_org mo ON o.organization_id = mo.organization_id
+                        JOIN member m ON m.member_id = mo.member_id
+                        WHERE mo.member_id = ? and mo.academic_year = ? and mo.semester = ?; 
+                    """  
+                cur.execute( query, (self.user.getMemberId(),acadYearInput,semesterInput, ))                                           
+            else:
+                query = """
+                        SELECT 
+                            o.organization_name AS org_name,
+                            mo.batch AS org_batch,
+                            mo.status AS org_status,
+                            mo.role AS org_role,
+                            mo.committee AS org_committee,
+                            mo.academic_year,
+                            mo.semester
+                        FROM organization o
+                        JOIN member_org mo ON o.organization_id = mo.organization_id
+                        JOIN member m ON m.member_id = mo.member_id
+                        WHERE mo.member_id = ? and mo.academic_year = ? and mo.semester = ? and mo.status = ?; 
+                    """ 
+                cur.execute( query, (self.user.getMemberId(),acadYearInput,semesterInput,statusInput ))  
+            
+    
         # Clear old data
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -371,7 +511,14 @@ class viewFees(Frame):
             self.payBtn.pack_forget()
         if self.deselectBtn.winfo_ismapped():  # hide if packed
             self.deselectBtn.pack_forget()
-            
+
+class viewMyProfile(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.card = Frame(self, height="150", width="100", bg="red")
+        self.card.pack()
+
+                
 
 
 if __name__ == "__main__":
