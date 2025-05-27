@@ -13,8 +13,8 @@ def connectMariaDB():
         conn = mariadb.connect(
             user="root",
             password="useruser", ## CHANGE THIS
-            host="127.0.0.1", # Connects to http://localhost:3306
-            port=3306,        # Assuming the MariaDB instance is there
+            host="127.0.0.1",   # Connects to http://localhost:3306
+            port=3306,          # Assuming the MariaDB instance is there
             database="127project"
         )
     except mariadb.Error as e:
