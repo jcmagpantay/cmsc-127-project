@@ -151,13 +151,13 @@ class AddMemberPage(Frame):
             return
 
         memberID = self.db.create_user(
-                            name=self.nameField.get(),
-                            gender=self.genderField.get(),
-                            degree_program=self.degreeProgramField.get(),
-                            password=self.passwordField.get(),
-                            access_level=1,
-                            username=self.usernameField.get()
-                        )
+            name=self.nameField.get(),
+            gender=self.genderField.get(),
+            degree_program=self.degreeProgramField.get(),
+            password=self.passwordField.get(),
+            access_level=1,
+            username=self.usernameField.get()
+        )
         
         if (memberID is None):
             messagebox.showerror("Creating Member Error", "Error in creating member.")
@@ -165,15 +165,15 @@ class AddMemberPage(Frame):
         
         # Create membership
         membership = self.db.create_membership(
-                                                member_id= memberID,
-                                                organization_id= self.idLookup[self.selectedOrg.get()],
-                                                batch= self.batchField.get(), 
-                                                status= self.statusField.get(),
-                                                committee= self.committeeField.get(),
-                                                role= self.roleField.get(),
-                                                acad_year= self.academicYearField.get(),
-                                                semester= self.semesterField.get()
-                                              )
+            member_id= memberID,
+            organization_id= self.idLookup[self.selectedOrg.get()],
+            batch= self.batchField.get(), 
+            status= self.statusField.get(),
+            committee= self.committeeField.get(),
+            role= self.roleField.get(),
+            acad_year= self.academicYearField.get(),
+            semester= self.semesterField.get()
+        )
         
         if (membership is None):
             messagebox.showerror("Creating Member Error", "Error in creating membership.")
@@ -182,8 +182,6 @@ class AddMemberPage(Frame):
             messagebox.showinfo("Success!", f"Successfully added {self.nameField.get()} to {self.selectedOrg.get()}")
             return
         
-
-    
     def getOrganizationsList(self):
         try:
             self.cur.execute("SELECT organization_id, organization_name FROM organization")
