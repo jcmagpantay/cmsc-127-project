@@ -2,6 +2,7 @@ import sys
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
+from database import Database
 
 import mariadb
 
@@ -9,6 +10,7 @@ class AdminMenu(Frame):
     def __init__(self, master):
         super().__init__(master)
         self.user = self.master.user
+
         Label(self, text="Main Menu", fg="Black",font=("Helvetica", 18)).pack(pady=10)
         Label(self, text="(Admin)", fg="Black",font=("Helvetica", 18)).pack()
         Label(self, text=f"A.Y. {self.user.getAcademicYear()} Semester {self.user.getSemester()}", fg="Black",font=("Helvetica", 10)).pack()
@@ -27,12 +29,14 @@ class AddMemberPage(Frame):
         super().__init__(master)
         self.user = self.master.user
         self.cur = self.master.cur
+        self.db:Database = self.master.db
+
         organizations = self.getOrganizationsList()
         print("Dictionary fetched from DB:", organizations)
         orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
         orgDisplay.sort()
         print("Displaying:", orgDisplay)
-        idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
 
         container = Frame(self)
         container.pack(anchor='n', pady=16)
@@ -44,12 +48,12 @@ class AddMemberPage(Frame):
 
         # Name
         Label(container, text="Name*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.nameField = LimitedEntry(container, char_limit=10)
+        self.nameField = LimitedEntry(container, char_limit=50)
         self.nameField.grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Gender
-        Label(container, text="Gender", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        Label(container, text="Gender*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
         self.genderField = LimitedEntry(container, char_limit=6)
         self.genderField.grid(row=row, column=1, padx=8, pady=4)
         row += 1
@@ -80,6 +84,39 @@ class AddMemberPage(Frame):
         organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
         row += 1
 
+        Label(container, text="Batch*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.batchField = LimitedEntry(container, char_limit=20)
+        self.batchField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+        
+        # TODO: Make this a dropdown
+        Label(container, text="Org Status*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.statusField = LimitedEntry(container, char_limit=10)
+        self.statusField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        Label(container, text="Role*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.roleField = LimitedEntry(container, char_limit=10)
+        self.roleField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        Label(container, text="Committee*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.committeeField = LimitedEntry(container, char_limit=20)
+        self.committeeField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # TODO: ADD VALIDATION: YYYY - YYYY
+        Label(container, text="Academic Year*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.academicYearField = LimitedEntry(container, char_limit=20)
+        self.academicYearField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # TODO: ADD VALIDATION: 1 or 2
+        Label(container, text="Semester*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.semesterField = LimitedEntry(container, char_limit=20)
+        self.semesterField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
         # Button
         Button(container, text="Add Member", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
         row += 1
@@ -93,21 +130,59 @@ class AddMemberPage(Frame):
         self.master.show_page(AdminMenu)
 
     def onSubmit(self):
-        if (self.nameField.isEmpty() or self.degreeProgramField.isEmpty() or self.usernameField.isEmpty() or self.passwordField.isEmpty() or len(self.selectedOrg.get()) == 0):
+        if (self.nameField.isEmpty() or
+            self.genderField.isEmpty() or
+            self.degreeProgramField.isEmpty() or
+            self.usernameField.isEmpty() or
+            self.passwordField.isEmpty() or
+            (len(self.selectedOrg.get()) == 0) or
+            self.batchField.isEmpty() or
+            self.statusField.isEmpty() or
+            self.roleField.isEmpty() or
+            self.committeeField.isEmpty() or
+            self.academicYearField.isEmpty() or
+            self.semesterField.isEmpty()
+        ):
             messagebox.showerror("Creating Member Error", "Please input required fields.")
             return
 
-        try:
-            self.cur.execute("SELECT * FROM member WHERE username=?", (self.usernameField.get(), ))
-        except mariadb.Error as e:
-            print(f"Error in fetching username: {e}")
-            sys.exit(1)
-
-        result = self.cur.fetchone()
-
-        if result is not None:
+        if (self.db.username_exists(self.usernameField.get())):
             messagebox.showerror("Creating Member Error", "Username is already existing.")
             return
+
+        memberID = self.db.create_user(
+                            name=self.nameField.get(),
+                            gender=self.genderField.get(),
+                            degree_program=self.degreeProgramField.get(),
+                            password=self.passwordField.get(),
+                            access_level=1,
+                            username=self.usernameField.get()
+                        )
+        
+        if (memberID is None):
+            messagebox.showerror("Creating Member Error", "Error in creating member.")
+            return
+        
+        # Create membership
+        membership = self.db.create_membership(
+                                                member_id= memberID,
+                                                organization_id= self.idLookup[self.selectedOrg.get()],
+                                                batch= self.batchField.get(), 
+                                                status= self.statusField.get(),
+                                                committee= self.committeeField.get(),
+                                                role= self.roleField.get(),
+                                                acad_year= self.academicYearField.get(),
+                                                semester= self.semesterField.get()
+                                              )
+        
+        if (membership is None):
+            messagebox.showerror("Creating Member Error", "Error in creating membership.")
+            return
+        else:
+            messagebox.showinfo("Success!", f"Successfully added {self.nameField.get()} to {self.selectedOrg.get()}")
+            return
+        
+
     
     def getOrganizationsList(self):
         try:

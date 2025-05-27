@@ -5,6 +5,7 @@ from tkinter import messagebox
 import mariadb
 from user import User
 from admin import AdminMenu
+from database import Database
 
 #connect to mariadb
 def connectMariaDB():
@@ -34,6 +35,7 @@ class App(Tk):
         self.update()              # Force window to draw before disabling resize
         self.resizable(False, False)
         #maria db cursor as attribute
+        self.db = Database()
         self.cur = connectMariaDB()
         #hold the current user
         self.user = None

@@ -7,7 +7,7 @@ class Database:
             self.conn = mariadb.connect(
                 user="root",
                 password="useruser",
-                host="localhost",
+                host="127.0.0.1",
                 port=3306,
                 database="127project"
             )
@@ -146,6 +146,23 @@ class Database:
             return []
         
     def get_unpaid_fees(self, member_id):
+        """
+    Retrieves a list of unpaid fees for a specific member.
+
+    Args:
+        member_id (int): The ID of the member whose unpaid fees are to be retrieved.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, each containing:
+        - 'organization_name' (str)
+        - 'fee_type' (str)
+        - 'amount' (float or Decimal)
+        - 'due_date' (datetime or str)
+        - 'payment_status' (str)
+        - 'academic_year' (str)
+        - 'semester' (str)
+        Returns an empty list if no unpaid fees are found or if an error occurs.
+    """
         try:
             self.cur.execute(
                 """SELECT o.organization_name, f.fee_type, f.amount, f.due_date, f.payment_status, fr.academic_year, fr.semester,
@@ -164,10 +181,25 @@ class Database:
             print(f"Error occurred: {e}")
             return []
 
-    # Returns `id` on successful creation
-    # Returns None on creation failure
-    # Commits change
     def create_user(self, name, gender, degree_program, password, access_level, username):
+        """
+    Creates a new user in the database.
+
+    Args:
+        name (str): Full name of the user.
+        gender (str): Gender of the user.
+        degree_program (str): Degree program the user is enrolled in.
+        password (str): User's password.
+        access_level (int): Access level (e.g., 1 = member, 2 = admin).
+        username (str): Unique username for the user.
+
+    Returns:
+        int: The ID of the newly created user on success.
+        None: If creation failed.
+
+    Side Effects:
+        Commits the change to the database.
+    """
         try:
             self.cur.execute(
                 """INSERT INTO member (`name`, `gender`, `degree_program`,
@@ -187,10 +219,21 @@ class Database:
             print("Insert may have failed or user already exists")
             return None
     
-    # Returns `id` on successful creation
-    # Returns None on creation failure
-    # Commits change
     def create_org(self, organization_name, date_established):
+        """
+    Creates a new organization in the database.
+
+    Args:
+        organization_name (str): The name of the organization.
+        date_established (str): The date the organization was established (format: YYYY-MM-DD).
+
+    Returns:
+        int: The ID of the newly created organization on success.
+        None: If creation failed.
+
+    Side Effects:
+        Commits the change to the database.
+    """
         try:
             self.cur.execute(
                 """INSERT INTO organization (`organization_name`,
@@ -209,14 +252,32 @@ class Database:
             print("Insert failed")
             return None
         
-    # Returns `id` on successful creation
-    # Returns None on creation failure
-    # Commits change
     def create_membership(
+            
         self, member_id, organization_id,
         batch, status, role, committee,
         acad_year, semester
         ):
+        """
+    Creates a new membership entry in the database.
+
+    Args:
+        member_id (int): ID of the member.
+        organization_id (int): ID of the organization.
+        batch (str): Batch of the member.
+        status (str): Membership status.
+        role (str): Role in the organization.
+        committee (str): Committee assigned.
+        acad_year (str): Academic year.
+        semester (str): Semester.
+
+    Returns:
+        int: The ID of the newly created membership on success.
+        None: If creation failed.
+
+    Side Effects:
+        Commits the change to the database.
+    """
         try:
             self.cur.execute(
                 """INSERT INTO member_org VALUES
@@ -240,7 +301,7 @@ class Database:
         if self.cur.rowcount == 1:
             print(f"Member {member_id} added to organization {organization_id}")
             self.conn.commit()
-            return self.cur.lastrowid
+            return member_id
         else:
             print("Insert failed")
             return None
