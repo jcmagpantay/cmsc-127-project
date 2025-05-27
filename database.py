@@ -15,6 +15,9 @@ class Database:
         except mariadb.Error as e:
             print(f"Error connecting: {e}")
             raise
+
+    def close(self):
+        self.conn.close()
     
     def get_organizations(self):
         try:
@@ -935,4 +938,25 @@ class Database:
         except mariadb.Error as e:
             print(f"Error occurred: {e}")
             return []
+        
+    # Returns success as boolean
+    def delete_member(self, member_id):
+        try:
+            self.cur.execute("DELETE FROM fee WHERE member_id = ?", (member_id,))
+            self.cur.execute("DELETE FROM member_org WHERE member_id = ?", (member_id,))
+            self.cur.execute("DELETE FROM member WHERE member_id = ?", (member_id,))
+
+            if self.cur.rowcount == 0:
+                print("No member was deleted.")
+                self.conn.rollback()
+                return False
+
+            self.conn.commit()
+            print(f"Deleted member {member_id} successfully.")
+            return True
+
+        except mariadb.Error as e:
+            print(f"Error occurred: {e}")
+            self.conn.rollback()
+            return False
         

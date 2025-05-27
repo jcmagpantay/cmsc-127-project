@@ -231,7 +231,7 @@ class ViewMembersPage(Frame):
         self.editBtn = Button(options, text="Edit", font=("Helvetica", 12), state="disabled", command= self.on_edit)
         self.editBtn.pack(side=LEFT, padx=4)
 
-        self.deleteBtn = Button(options, text="Delete", font=("Helvetica", 12), state="disabled")
+        self.deleteBtn = Button(options, text="Delete", font=("Helvetica", 12), state="disabled", command= self.on_delete)
         self.deleteBtn.pack(side=LEFT, padx=4)
 
         Label(options, text="Name", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=4)
@@ -317,7 +317,17 @@ class ViewMembersPage(Frame):
         print(selected_values)
         self.currentMember = selected_values
         self.goToEditMemberPage()
-
+    
+    def on_delete(self):
+        selected_values = self.tree.item(self.tree.selection()[0], 'values')
+        memberID = selected_values[0]
+        success = self.db.delete_member(member_id= memberID)
+        if success:
+            messagebox.showinfo("Success", f"Member {selected_values[1]} deleted successfully.")
+        else:
+            messagebox.showerror("Error", f"Failed to delete member {selected_values[1]}.")
+        self.refresh()
+        
 
 class ViewOrganizationalMembersPage(Frame):
     def __init__(self, master):
