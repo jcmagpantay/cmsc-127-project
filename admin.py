@@ -708,6 +708,87 @@ class CreateOrganizationPage(Frame):
             self.goBack
     
 
+class AddFinancialRecordPage(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.cur = self.master.cur
+        self.db:Database = self.master.db
+        organizations = self.getOrganizationsList()
+        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
+        orgDisplay.sort()
+        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+
+        container = Frame(self)
+        container.pack(anchor='n', pady=16)
+
+        row = 0
+
+        Label(container, text="Add a financial record", fg="Black", font=("Helvetica", 18)).grid(row=row, column=0, columnspan=2, pady=(10, 20))
+        row += 1
+
+        Label(container, text="Select organization", fg="Black", font=("Helvetica", 12)).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        self.selectedOrg = StringVar()
+        organizationSelect = ttk.Combobox(container, textvariable=self.selectedOrg, values=orgDisplay)
+        organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
+        row += 1
+
+        # Name
+        Label(container, text="Balance*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.balanceField = LimitedEntry(container, char_limit=50)
+        self.balanceField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Academic Year
+        Label(container, text="Academic Year*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.academicYearField = LimitedEntry(container, char_limit=10)
+        self.academicYearField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Academic Year
+        Label(container, text="Semester*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.semesterField = LimitedEntry(container, char_limit=10)
+        self.semesterField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Button
+        Button(container, text="Add financial record", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        Button(container, text="Go Back", font=("Helvetica", 12), command=self.goBack).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+    def goBack(self):
+        self.master.show_page(CreateMenu)
+
+    def onSubmit(self):
+        if (self.balanceField.isEmpty() or self.academicYearField.isEmpty() or self.semesterField.isEmpty() or len(self.selectedOrg.get()) == 0):
+            messagebox.showerror("Error", "Please fill in required fields")
+            return
+        orgID = self.idLookup[self.selectedOrg.get()]
+        balance = self.balanceField.get()
+        academicYear = self.academicYearField.get()
+        semester = self.semesterField.get()
+    
+        recordID = self.db.create_financial_record(organization_id=orgID, balance= balance, semester= semester, academic_year=academicYear)
+
+        if (recordID is None):
+            messagebox.showerror("Error", "Error in creating record.")
+        else:
+            messagebox.showinfo("Success", f"Financial record created for {self.selectedOrg.get()}!")
+            self.goBack()
+
+    def getOrganizationsList(self):
+        try:
+            self.cur.execute("SELECT organization_id, organization_name FROM organization")
+            rows = self.cur.fetchall()
+            print("Rows fetched from DB:", rows)
+            return {row['organization_id']: row['organization_name'] for row in rows}
+        except mariadb.Error as e:
+            print(f"Error in fetching organizations: {e}")
+            return {}
     
 class LimitedEntry(Entry):
     def __init__(self, master=None, char_limit=10, **kwargs):
@@ -740,7 +821,7 @@ class CreateMenu(Frame):
         Label(self, text="Add/create a...", fg="Black",font=("Helvetica", 18)).pack(pady=(32,8))
         Button(self, text="Member",font=("Helvetica", 12), command=self.goToAddMemberPage).pack(pady=2.5)
         Button(self, text="Organization",font=("Helvetica", 12), command=self.goToCreateOrganizationPage).pack(pady=2.5)
-        Button(self, text="Financial Record",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="Financial Record",font=("Helvetica", 12), command=self.goToAddFinancialRecordPage).pack(pady=2.5)
         Button(self, text="Fee",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Back",font=("Helvetica", 12), command=self.goBack).pack(pady=2.5)
     
@@ -752,7 +833,7 @@ class CreateMenu(Frame):
         self.master.show_page(CreateOrganizationPage)
 
     def goToAddFinancialRecordPage(self):
-        pass
+        self.master.show_page(AddFinancialRecordPage)
 
     def goToAddFeePage(self):
         pass
