@@ -59,7 +59,6 @@ class LandingPage(Frame):
         super().__init__(master)
         Label(self, text="Welcome to O-SOM", fg="Black",font=("Helvetica", 18)).pack()
         Button(self, text="Log In", font=("Helvetica", 12),command=lambda:master.show_screen(LogInPage)).pack(pady=10)
-        Button(self, text="Register",font=("Helvetica", 12)).pack(pady=10)
         Button(self, text="Exit", font=("Helvetica", 12),command=master.destroy).pack(pady=10)
 
 #log in page
@@ -69,13 +68,13 @@ class LogInPage(Frame):
         Label(self, text="Log in", fg="Black",font=("Helvetica", 18)).pack(pady=10)
         # username
         Label(self, text="Username", fg="Black",font=("Helvetica", 12)).pack()
-        self.usernameEntry = Entry(self)
+        self.usernameEntry = Entry(self, font=("Helvetica", 12))
         self.usernameEntry.pack()
         # password
         Label(self, text="Password", fg="Black",font=("Helvetica", 12)).pack()
-        self.passwordEntry = Entry(self,show="*")
+        self.passwordEntry = Entry(self,show="*", font=("Helvetica", 12))
         self.passwordEntry.pack()
-        Button(self, text="Log In",font=("Helvetica", 12), bg="Green", command=self.login).pack(pady=10)
+        Button(self, text="Log In",font=("Helvetica", 12), bg="Green", fg="white", command=self.login).pack(pady=10)
         Button(self, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(LandingPage)).pack(pady=10)
     
     def login(self):
@@ -178,11 +177,16 @@ class viewMyOrganizations(Frame):
         self.tree.configure(yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
         scrollbarY.pack(side=RIGHT, fill=Y)
         scrollbarX.pack(side=BOTTOM, fill=X)
-        Button(self, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(pady=10)
+        #header
+        self.header = Frame(self, height=60)
+        self.header.pack(fill=X)
+        Label(self.header, text="VIEW MY ORGANIZATIONS", font=("Helvetica", 16, "bold")).pack() 
         top_frame = Frame(self, height=60)
         top_frame.pack(fill=X)
+        Button(top_frame, text="Back",font=("Helvetica", 12),bg="red",fg="white", command=lambda:master.show_screen(MemberMenu)).pack(side= LEFT, padx="5")
         # input for acad year
         vcmd = (self.register(validate_number), '%P')
+        Label(top_frame, text="FILTERS: ", fg="Black",font=("Helvetica", 12, "bold italic")).pack(side=LEFT)
         Label(top_frame, text="AcadYear(****-****): ", fg="Black",font=("Helvetica", 12)).pack(side=LEFT)
         self.acadYearEntry = Entry(top_frame)
         self.acadYearEntry.pack(side=LEFT,padx=2, pady=5)
@@ -361,6 +365,10 @@ class viewFees(Frame):
         self.style.theme_use('clam')
         self.user = self.master.user
         self.pack(fill=BOTH, expand=True) 
+        #header
+        self.header = Frame(self, height=60)
+        self.header.pack(fill=X)
+        Label(self.header, text="VIEW MY FEES", font=("Helvetica", 16, "bold")).pack() 
         # Navigation bar frame
         nav_frame = Frame(self, bg="lightgrey", height=60)
         nav_frame.pack(fill=X)
