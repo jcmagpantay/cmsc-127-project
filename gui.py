@@ -697,12 +697,12 @@ class changeMyPassword(Frame):
         self.oldPassEntry.insert(0, "")
         self.oldPassEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
         #new pass
-        self.oldPass = Frame(self.card, height="40", bg="white")
-        self.oldPass.pack(fill=X, pady="5")
-        Label(self.oldPass, text="New Password: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
-        self.oldPassEntry = Entry(self.oldPass, font=("Helvetica", 12), bg="#F8F8F8")
-        self.oldPassEntry.insert(0, "")
-        self.oldPassEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        self.newPass = Frame(self.card, height="40", bg="white")
+        self.newPass.pack(fill=X, pady="5")
+        Label(self.newPass, text="New Password: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.newPassEntry = Entry(self.newPass, font=("Helvetica", 12), bg="#F8F8F8")
+        self.newPassEntry.insert(0, "")
+        self.newPassEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
         #Bottom spacer
         self.bot_spacer = Frame(self.card, bg='white')
         self.bot_spacer.pack(side=BOTTOM, fill='both', expand=True)
@@ -710,8 +710,37 @@ class changeMyPassword(Frame):
         self.buttons = Frame(self, width="500")
         self.buttons.place(relx=0.5, rely=0.5 + 0.2, anchor="n")
         Button(self.buttons, text="Cancel",font=("Helvetica", 12),bg="red",fg="white", command=lambda:master.show_screen(viewMyProfile)).pack(side=LEFT, padx="15")
-        Button(self.buttons, text="Confirm",font=("Helvetica", 12),bg="green",fg="white").pack(side=RIGHT, padx="15")
-
+        Button(self.buttons, text="Confirm",font=("Helvetica", 12),bg="green",fg="white", command=self.editPassword).pack(side=RIGHT, padx="15")
+    
+    def editPassword(self):
+        cur = self.master.cur
+        conn = self.master.conn
+        oldPassInput = self.oldPassEntry.get()
+        newPassInput = self.newPassEntry.get()
+        query = '''
+                UPDATE member SET
+                password = ?
+                WHERE member_id = ?;
+                '''
+        if newPassInput == "" or oldPassInput == "":
+            messagebox.showerror("Update Password Failed", "all fields are required")
+        else:
+            #check if the entered old password is correct
+            try:
+                cur.execute("SELECT * FROM member WHERE member_id=?", (self.user.getMemberId(), ))
+            except mariadb.Error as e:
+                print(f"Error in changing password: {e}")
+                sys.exit(1)
+            
+            result = cur.fetchone()
+            matchedPass = result["password"]
+            if oldPassInput != matchedPass:
+                messagebox.showerror("Update Password Failed", "Incorrect old password")
+            else:
+                cur.execute(query, (newPassInput,self.user.getMemberId(), ))
+                conn.commit()
+                messagebox.showinfo("Success", "Successfully updated password")
+                self.master.show_screen(MemberMenu)
 
 
 if __name__ == "__main__":
