@@ -535,23 +535,159 @@ class viewMyProfile(Frame):
         self.readDegProg.insert(0, f"{self.user.getDegreeProgram()}")
         self.readDegProg.config(state="readonly")
         self.readDegProg.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #bottom spacer
         self.bot_spacer = Frame(self.card, bg='white')
         self.bot_spacer.pack(side=BOTTOM, fill='both', expand=True)
+        #buttons
         self.buttons = Frame(self, width="500")
         self.buttons.place(relx=0.5, rely=0.5 + 0.2, anchor="n")
         Button(self.buttons, text="Back",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(side=LEFT, padx="15")
-        Button(self.buttons, text="Edit",font=("Helvetica", 12), command=lambda:master.show_screen(MemberMenu)).pack(side=RIGHT, padx="15")
+        Button(self.buttons, text="Change Password",font=("Helvetica", 12), command=self.changePassword).pack(side=LEFT, padx="15")
+        Button(self.buttons, text="Edit",font=("Helvetica", 12), command=self.profileEdit).pack(side=RIGHT, padx="15")
 
-        def editMyProfile(self):
-            edit = viewMyProfile(self.master)
-            self.master.screens[viewMyProfile] = viewProfile
-            viewProfile.place(relwidth=1, relheight=1)
-            self.master.show_screen(viewMyProfile)
+    def profileEdit(self):
+        editProfile = editMyProfile(self.master)
+        self.master.screens[editMyProfile] = editProfile
+        editProfile.place(relwidth=1, relheight=1)
+        self.master.show_screen(editMyProfile)
+    
+    def changePassword(self):
+        passwordChange = changeMyPassword(self.master)
+        self.master.screens[changeMyPassword] = passwordChange
+        passwordChange.place(relwidth=1, relheight=1)
+        self.master.show_screen(changeMyPassword)
 
 class editMyProfile(Frame):
     def __init__(self, master):
         super().__init__(master)
-                
+        self.user = self.master.user
+        self.card = Frame(self, height="200", width="500", bg="white", bd=2, relief="raised")
+        self.card.place(relx=0.5, rely=0.5-0.1,anchor="center")
+         # will prevent the card from scaling down when using a frame inside it
+        self.card.pack_propagate(False)
+        # Spacer above content (expands to push content down)
+        self.top_spacer = Frame(self.card, bg='white')
+        self.top_spacer.pack(side=TOP, fill='both', expand=True)
+        #Header
+        Label(self.top_spacer, text="EDIT PROFILE", fg="Black",font=("Helvetica", 16, "bold italic"), bg="white").pack(side=LEFT)
+        # frame for the name
+        self.name = Frame(self.card, height="40", bg="white")
+        self.name.pack(fill=X, pady="5")
+        Label(self.name, text="Name: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.nameEntry = Entry(self.name, font=("Helvetica", 12), bg="#F8F8F8")
+        self.nameEntry.insert(0, f"{self.user.getName()}")
+        self.nameEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #username
+        self.userName = Frame(self.card, height="40", bg="white")
+        self.userName.pack(fill=X, pady="5")
+        Label(self.userName, text="Username: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.userNameEntry = Entry(self.userName, font=("Helvetica", 12), bg="#F8F8F8")
+        self.userNameEntry.insert(0, f"{self.user.getUsername()}")
+        self.userNameEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #gender
+        self.gender = Frame(self.card, height="40", bg="white")
+        self.gender.pack(fill=X, pady="5")
+        Label(self.gender, text="Gender: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.genderEntry = Entry(self.gender, font=("Helvetica", 12), bg="#F8F8F8")
+        self.genderEntry.insert(0, f"{self.user.getGender()}")
+        self.genderEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #degree program
+        self.degProg = Frame(self.card, height="40", bg="white")
+        self.degProg.pack(fill=X, pady="5")
+        Label(self.degProg, text="Degree Program: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.degProgEntry = Entry(self.degProg, font=("Helvetica", 12), bg="#F8F8F8")
+        self.degProgEntry.insert(0, f"{self.user.getDegreeProgram()}")
+        self.degProgEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #Bottom spacer
+        self.bot_spacer = Frame(self.card, bg='white')
+        self.bot_spacer.pack(side=BOTTOM, fill='both', expand=True)
+        #Buttons frame
+        self.buttons = Frame(self, width="500")
+        self.buttons.place(relx=0.5, rely=0.5 + 0.2, anchor="n")
+        Button(self.buttons, text="Cancel",font=("Helvetica", 12),bg="red",fg="white", command=lambda:master.show_screen(viewMyProfile)).pack(side=LEFT, padx="15")
+        Button(self.buttons, text="Confirm",font=("Helvetica", 12),bg="green",fg="white", command=self.editUser).pack(side=RIGHT, padx="15")
+
+    def editUser(self):
+        cur = self.master.cur
+        conn = self.master.conn
+        nameInput = self.nameEntry.get()
+        userNameInput = self.userNameEntry.get()
+        genderInput = self.genderEntry.get()
+        degProgInput = self.degProgEntry.get()
+        query = '''
+                UPDATE member SET
+                name = ?,
+                gender = ?,
+                degree_program = ?,
+                username = ?
+                WHERE member_id = ?;
+                '''
+        #check if all fields have input
+        if nameInput == "" or userNameInput == "" or genderInput == "" or degProgInput == "":
+            messagebox.showerror("Edit Failed", "All fields are required")
+        else:
+            #check if the userNameInput is changed
+            if self.user.getUsername() != userNameInput:
+                #check if the new username is not unique
+                cur.execute( "select username from member where username = ?;", (userNameInput, ))
+                result = cur.fetchone()
+                if result != None:
+                    messagebox.showerror("Failed to Edit", "Username Already Exists")
+                else:
+                    cur.execute(query, (nameInput,genderInput,degProgInput,userNameInput,self.user.getMemberId(),))
+                    conn.commit()
+                    user = User(self.user.getMemberId(), nameInput, genderInput, degProgInput, self.user.getAccessLevel(), userNameInput, "2024-2025", 2)
+                    self.master.user = user
+                    messagebox.showinfo("Success", "You successfully edited your profile")
+                    self.master.show_screen(MemberMenu)  
+                    
+            else:
+                cur.execute(query, (nameInput,genderInput,degProgInput,userNameInput,self.user.getMemberId(),))
+                conn.commit()
+                user = User(self.user.getMemberId(), nameInput, genderInput, degProgInput, self.user.getAccessLevel(), userNameInput, "2024-2025", 2)
+                self.master.user = user
+                messagebox.showinfo("Success", "You successfully edited your profile")
+                self.master.show_screen(MemberMenu)   
+            
+        
+
+
+class changeMyPassword(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.card = Frame(self, height="200", width="500", bg="white", bd=2, relief="raised")
+        self.card.place(relx=0.5, rely=0.5-0.1,anchor="center")
+         # will prevent the card from scaling down when using a frame inside it
+        self.card.pack_propagate(False)
+        # Spacer above content (expands to push content down)
+        self.top_spacer = Frame(self.card, bg='white')
+        self.top_spacer.pack(side=TOP, fill='both', expand=True)
+        #Header
+        Label(self.top_spacer, text="Change Password", fg="Black",font=("Helvetica", 16, "bold italic"), bg="white").pack(side=LEFT)
+        #old pass
+        self.oldPass = Frame(self.card, height="40", bg="white")
+        self.oldPass.pack(fill=X, pady="5")
+        Label(self.oldPass, text="Old Pass: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.oldPassEntry = Entry(self.oldPass, font=("Helvetica", 12), bg="#F8F8F8")
+        self.oldPassEntry.insert(0, "")
+        self.oldPassEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #new pass
+        self.oldPass = Frame(self.card, height="40", bg="white")
+        self.oldPass.pack(fill=X, pady="5")
+        Label(self.oldPass, text="New Password: ", fg="Black",font=("Helvetica", 12, "bold"), bg="white").pack(side=LEFT)
+        self.oldPassEntry = Entry(self.oldPass, font=("Helvetica", 12), bg="#F8F8F8")
+        self.oldPassEntry.insert(0, "")
+        self.oldPassEntry.pack(side=LEFT, padx = 5, fill=X, expand=True)
+        #Bottom spacer
+        self.bot_spacer = Frame(self.card, bg='white')
+        self.bot_spacer.pack(side=BOTTOM, fill='both', expand=True)
+        #Buttons frame
+        self.buttons = Frame(self, width="500")
+        self.buttons.place(relx=0.5, rely=0.5 + 0.2, anchor="n")
+        Button(self.buttons, text="Cancel",font=("Helvetica", 12),bg="red",fg="white", command=lambda:master.show_screen(viewMyProfile)).pack(side=LEFT, padx="15")
+        Button(self.buttons, text="Confirm",font=("Helvetica", 12),bg="green",fg="white").pack(side=RIGHT, padx="15")
+
 
 
 if __name__ == "__main__":
