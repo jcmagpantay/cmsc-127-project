@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter import messagebox
 import mariadb
 from user import User
+from admin import AdminMenu
 
 #connect to mariadb
 def connectMariaDB():
@@ -11,7 +12,7 @@ def connectMariaDB():
     try:
         conn = mariadb.connect(
             user="root",
-            password="justinejr",
+            password="useruser", ## CHANGE THIS
             host="127.0.0.1", # Connects to http://localhost:3306
             port=3306,        # Assuming the MariaDB instance is there
             database="127project"
@@ -30,7 +31,8 @@ class App(Tk):
         super().__init__()
         self.title("127 Project")
         self.geometry("1080x1080")
-        self.resizable(False,False)
+        self.update()              # Force window to draw before disabling resize
+        self.resizable(False, False)
         #maria db cursor as attribute
         self.cur = connectMariaDB()
         #hold the current user
@@ -111,6 +113,11 @@ class LogInPage(Frame):
             self.master.screens[MemberMenu] = memberMenu
             memberMenu.place(relwidth=1, relheight=1)
             self.master.show_screen(MemberMenu)
+        elif user.getAccessLevel() == 2:
+            adminMenu = AdminMenu(self.master)
+            self.master.screens[AdminMenu] = adminMenu
+            adminMenu.place(relwidth=1,relheight=1)
+            self.master.show_screen(AdminMenu)
 
 #landing page
 class MemberMenu(Frame):
@@ -179,11 +186,11 @@ class viewMyOrganizations(Frame):
         for row in self.tree.get_children():
             self.tree.delete(row)
         for row in cur:
-            self.tree.insert("",END,text="1",values=(row['org_name'] ,
-                                            row["org_batch"] if row["org_batch"] != None else "No Batch",
-                                            row["org_role"] if row["org_role"] != None else "No Role" ,
-                                            row["org_committee"] if row["org_committee"] != None else "No Committee",
-                                            row["org_status"] if row["org_status"] != None else "No Status"))
+            self.tree.insert("",END,text="1",values=(row['org_name'],
+                row["org_batch"] if row["org_batch"] != None else "No Batch",
+                row["org_role"] if row["org_role"] != None else "No Role" ,
+                row["org_committee"] if row["org_committee"] != None else "No Committee",
+                row["org_status"] if row["org_status"] != None else "No Status"))
         self.tree.pack(fill=BOTH, expand=True)
 
 if __name__ == "__main__":

@@ -982,7 +982,7 @@ def main():
     try:
         conn = mariadb.connect(
             user="root",
-            password="justinejr",
+            password="useruser",
             host="127.0.0.1", # Connects to http://localhost:3306
             port=3306,        # Assuming the MariaDB instance is there
             database="127project"
