@@ -1,6 +1,9 @@
+import sys
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
+
+import mariadb
 
 class AdminMenu(Frame):
     def __init__(self, master):
@@ -17,16 +20,123 @@ class AdminMenu(Frame):
         Button(self, text="Logout",fg="white", bg="Red",font=("Helvetica", 12)).pack(pady=2.5)
     
     def goToAddMemberPage(self):
-       addMemberPage = AddMemberPage(self.master)
-       self.master.screens[AddMemberPage] = addMemberPage
-       addMemberPage.place(relwidth=1, relheight=1)
-       self.master.show_screen(AddMemberPage)
+        self.master.show_page(AddMemberPage)
 
 class AddMemberPage(Frame):
     def __init__(self, master):
         super().__init__(master)
         self.user = self.master.user
-        Label(self, text="Add A Member", fg="Black",font=("Helvetica", 18)).pack(pady=10)
-        Label(self, text="Name", fg="Black",font=("Helvetica", 18)).pack(pady=10)
-        Text(self, height=5, width=40).pack(pady=2.5)
-        Button(self, text="Add Member",font=("Helvetica", 12)).pack(pady=2.5)
+        self.cur = self.master.cur
+        organizations = self.getOrganizationsList()
+        print("Dictionary fetched from DB:", organizations)
+        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
+        orgDisplay.sort()
+        print("Displaying:", orgDisplay)
+        idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+
+        container = Frame(self)
+        container.pack(anchor='n', pady=16)
+
+        row = 0
+
+        Label(container, text="Add A Member", fg="Black", font=("Helvetica", 18)).grid(row=row, column=0, columnspan=2, pady=(10, 20))
+        row += 1
+
+        # Name
+        Label(container, text="Name*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.nameField = LimitedEntry(container, char_limit=10)
+        self.nameField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Gender
+        Label(container, text="Gender", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.genderField = LimitedEntry(container, char_limit=6)
+        self.genderField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Degree Program
+        Label(container, text="Degree Program*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.degreeProgramField = LimitedEntry(container, char_limit=50)
+        self.degreeProgramField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Username
+        Label(container, text="Username*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.usernameField = LimitedEntry(container, char_limit=20)
+        self.usernameField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        # Password
+        Label(container, text="Password*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
+        self.passwordField = LimitedEntry(container, char_limit=20, show="•")
+        self.passwordField.grid(row=row, column=1, padx=8, pady=4)
+        row += 1
+
+        Label(container, text="Select organization", fg="Black", font=("Helvetica", 12)).grid(row=row, column=0, columnspan=2)
+        row += 1
+
+        self.selectedOrg = StringVar()
+        organizationSelect = ttk.Combobox(container, textvariable=selectedOrg, values=orgDisplay)
+        organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
+        row += 1
+
+        # Button
+        Button(container, text="Add Member", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        Button(container, text="Go Back", font=("Helvetica", 12), command=self.goBack).grid(row=row, column=0, columnspan=2, pady=4)
+        row += 1
+
+        
+    
+    def goBack(self):
+        self.master.show_page(AdminMenu)
+
+    def onSubmit(self):
+        if (self.nameField.isEmpty() or self.degreeProgramField.isEmpty() or self.usernameField.isEmpty() or self.passwordField.isEmpty() or len(self.selectedOrg.get()) == 0):
+            messagebox.showerror("Creating Member Error", "Please input required fields.")
+            return
+
+        try:
+            self.cur.execute("SELECT * FROM member WHERE username=?", (self.usernameField.get(), ))
+        except mariadb.Error as e:
+            print(f"Error in fetching username: {e}")
+            sys.exit(1)
+
+        result = self.cur.fetchone()
+
+        if result is not None:
+            messagebox.showerror("Creating Member Error", "Username is already existing.")
+            return
+    
+    def getOrganizationsList(self):
+        try:
+            self.cur.execute("SELECT organization_id, organization_name FROM organization")
+            rows = self.cur.fetchall()
+            print("Rows fetched from DB:", rows)
+            return {row['organization_id']: row['organization_name'] for row in rows}
+        except mariadb.Error as e:
+            print(f"Error in fetching organizations: {e}")
+            return {}
+
+class LimitedEntry(Entry):
+    def __init__(self, master=None, char_limit=10, **kwargs):
+        self.char_limit = char_limit
+        self.var = StringVar()
+        super().__init__(master, textvariable=self.var, **kwargs)
+
+        # register validation command
+        vcmd = self.register(self.on_validate)
+        self.config(validate="key", validatecommand=(vcmd, '%P'))
+
+    def on_validate(self, proposed_text):
+        return len(proposed_text) <= self.char_limit
+
+    def set_limit(self, new_limit):
+        self.char_limit = new_limit
+    
+    def get(self):
+        return self.var.get()
+    
+    def isEmpty(self):
+        return len(self.var.get()) == 0

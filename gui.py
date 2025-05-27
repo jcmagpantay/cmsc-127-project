@@ -50,6 +50,14 @@ class App(Tk):
     def show_screen(self, screen):
         frame = self.screens[screen]
         frame.tkraise()
+    
+    def show_page(self, screen_class):
+        if screen_class not in self.screens:
+            # Create the frame, add it to the dictionary, and place it
+            frame = screen_class(self)
+            self.screens[screen_class] = frame
+            frame.place(relwidth=1, relheight=1)
+        self.screens[screen_class].tkraise()
 
 #landing page
 class LandingPage(Frame):
