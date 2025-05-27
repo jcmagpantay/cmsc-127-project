@@ -687,8 +687,8 @@ class Database:
                     org.organization_name,
                     mo.academic_year,
                     mo.semester,
-                    SUM(CASE WHEN mo.status = 'Active' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS `Active Percentage`,
-                    SUM(CASE WHEN mo.status = 'Inactive' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS `Inactive Percentage`
+                    SUM(CASE WHEN mo.status = 'Active' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS active_percentage,
+                    SUM(CASE WHEN mo.status = 'Inactive' THEN 1 ELSE 0 END) / COUNT(*) * 100 AS inactive_percentage
                 FROM
                     member_org mo
                 JOIN
@@ -703,7 +703,7 @@ class Database:
                     mo.semester DESC
                 LIMIT ?;
             """,
-                (organization_id, limit),
+                (organization_id, int(limit)),
             )
             
             result = self.cur.fetchall()
