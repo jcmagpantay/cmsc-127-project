@@ -765,6 +765,8 @@ class Database:
                     given_date,
                     given_date,
                     given_date,
+                    given_date,
+                    given_date,
                     organization_id,
                 ),
             )
