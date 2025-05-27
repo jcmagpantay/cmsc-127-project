@@ -273,7 +273,7 @@ class ViewMembersPage(Frame):
         self.tree.configure(xscrollcommand=tree_h_scrollbar.set)
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
-        self.tree.pack(fill=BOTH, expand=True)  # Make sure treeview is packed
+        self.tree.pack(fill=BOTH, expand=True) 
         tree_h_scrollbar.pack(side=BOTTOM, fill=X)  
 
         for col in columns:
@@ -447,7 +447,7 @@ class ViewOrganizationalMembersPage(Frame):
         tree_h_scrollbar = Scrollbar(self, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=tree_h_scrollbar.set)
 
-        self.tree.pack(fill=BOTH, expand=True)  # Make sure treeview is packed
+        self.tree.pack(fill=BOTH, expand=True) 
         tree_h_scrollbar.pack(side=BOTTOM, fill=X)  
 
         for col in columns:
@@ -457,11 +457,9 @@ class ViewOrganizationalMembersPage(Frame):
         self.on_filter_changed()
         
     def on_filter_changed(self, *args):
-        # Clear the tree
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        # Gather filter values (use None or empty string as default)
         org_key = self.selectedOrg.get()
         organization_id = self.idLookup.get(org_key) if org_key and org_key != "All" else None
 
@@ -1022,9 +1020,7 @@ class ViewUnpaidMembers(Frame):
         self.selectedOrg.trace_add("write", self.on_filter_changed)
         self.academicYearVar.trace_add("write", self.on_filter_changed)
         self.semesterVar.trace_add("write", self.on_filter_changed)
- #m.member_id, m.name, f.amount, mo.role, m.gender, m.degree_program,
-                   # mo.batch, mo.status, mo.committee,
-                   # fr.academic_year, fr.semester
+
         columns = ("Member ID", "Name", "Unpaid Amount", "Role", "Gender", "Degree Program", "Batch", "Status", "Committee", "A.Y.", "Semester")
 
         self.tree = ttk.Treeview(self, columns=columns, show="headings")
@@ -1032,7 +1028,7 @@ class ViewUnpaidMembers(Frame):
         tree_h_scrollbar = Scrollbar(self, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=tree_h_scrollbar.set)
 
-        self.tree.pack(fill=BOTH, expand=True)  # Make sure treeview is packed
+        self.tree.pack(fill=BOTH, expand=True)
         tree_h_scrollbar.pack(side=BOTTOM, fill=X)  
 
         for col in columns:
@@ -1042,11 +1038,9 @@ class ViewUnpaidMembers(Frame):
         self.on_filter_changed()
         
     def on_filter_changed(self, *args):
-        # Clear the tree
         for row in self.tree.get_children():
             self.tree.delete(row)
 
-        # Gather filter values (use None or empty string as default)
         org_key = self.selectedOrg.get()
         organization_id = self.idLookup.get(org_key) if org_key and org_key != "All" else None
         academic_year = self.academicYearVar.get().strip() or None
@@ -1054,7 +1048,6 @@ class ViewUnpaidMembers(Frame):
         if semester == "All":
             semester = None
 
-        # Fetch filtered data
         data = self.db.get_all_unpaid_members(organization_id=organization_id, academic_year=academic_year, semester=semester)
         #m.member_id, m.name, f.amount, m.role, m.gender, m.degree_program, mo.batch, mo.status, mo.committee
 
@@ -1079,6 +1072,111 @@ class ViewUnpaidMembers(Frame):
         except mariadb.Error as e:
             print(f"Error in fetching organizations: {e}")
             return {}
+
+class ViewExecutives(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.db:Database = self.master.db
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.pack(fill=BOTH, expand=True)
+        self.cur = self.master.cur
+
+        organizations = self.getOrganizationsList()
+        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
+        orgDisplay.sort()
+        orgDisplay.insert(0, "All")
+
+        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+        self.idLookup["All"] = None
+
+        Label(self, text="View Executive Members", fg="Black", font=("Helvetica", 18)).pack(pady=8)
+
+        options_container = Frame(self)
+        options_container.pack(fill=X, pady=(0, 8))
+
+        canvas = Canvas(options_container, height=30)
+        h_scrollbar = Scrollbar(options_container, orient=HORIZONTAL, command=canvas.xview)
+        canvas.configure(xscrollcommand=h_scrollbar.set)
+
+        canvas.pack(side=TOP, fill=X, expand=True)
+        h_scrollbar.pack(side=BOTTOM, fill=X)
+
+        options = Frame(canvas)
+        canvas.create_window((0, 0), window=options, anchor='nw')
+
+        def on_options_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        options.bind("<Configure>", on_options_configure)
+
+
+        Button(options, text="Back", font=("Helvetica", 12), command=self.goBack).pack(side=LEFT, padx=4)
+
+        Label(options, text="Filter by:", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=8)
+        Label(options, text="Organization", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=4)
+        self.selectedOrg = StringVar(value="All")
+        organizationFilter = ttk.Combobox(options, textvariable=self.selectedOrg, values=orgDisplay, width=16)
+        organizationFilter.pack(side=LEFT, padx=4)
+
+        Label(options, text="Academic Year", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=4)
+        self.academicYearVar = StringVar()
+        academicYearFilter = Entry(options, textvariable=self.academicYearVar)
+        academicYearFilter.pack(side=LEFT, padx=4)
+
+        self.selectedOrg.trace_add("write", self.on_filter_changed)
+        self.academicYearVar.trace_add("write", self.on_filter_changed)
+
+        # m.member_id, m.name, o.organization_name, mo.role, mo.committee, mo.academic_year,
+        columns = ("Member ID", "Name", "Organization", "Role", "Committee", "Academic Year")
+
+        self.tree = ttk.Treeview(self, columns=columns, show="headings")
+
+        tree_h_scrollbar = Scrollbar(self, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(xscrollcommand=tree_h_scrollbar.set)
+
+        self.tree.pack(fill=BOTH, expand=True) 
+        tree_h_scrollbar.pack(side=BOTTOM, fill=X)  
+
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, anchor=CENTER)
+        
+        self.on_filter_changed()
+        
+    def on_filter_changed(self, *args):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        org_key = self.selectedOrg.get()
+        organization_id = self.idLookup.get(org_key) if org_key and org_key != "All" else None
+        academic_year = self.academicYearVar.get().strip() or None
+
+        # Fetch filtered data
+        data = self.db.get_executives_by_year(organization_id=organization_id, academic_year=academic_year)
+        # m.member_id, m.name, o.organization_name, mo.role, mo.committee, mo.academic_year,
+
+        for row in data:
+            self.tree.insert("", "end", values=(
+                row["member_id"],
+                row["name"],row["organization_name"], row["role"], row["committee"],
+                row["academic_year"]
+            ))
+
+    def goBack(self):
+        self.master.show_page(AdminMenu)
+
+    def getOrganizationsList(self):
+        try:
+            self.cur.execute("SELECT organization_id, organization_name FROM organization")
+            rows = self.cur.fetchall()
+            print("Rows fetched from DB:", rows)
+            return {row['organization_id']: row['organization_name'] for row in rows}
+        except mariadb.Error as e:
+            print(f"Error in fetching organizations: {e}")
+            return {}      
+
 
 class CreateMenu(Frame):
     def __init__(self, master):
@@ -1111,7 +1209,7 @@ class ReportMenu(Frame):
 
         Label(self, text="Generated report", fg="Black",font=("Helvetica", 18)).pack(pady=(32,8))
         Button(self, text="View Unpaid Members",font=("Helvetica", 12), command=self.goToViewUnpaid).pack(pady=2.5)
-        Button(self, text="View Executives",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Executives",font=("Helvetica", 12), command=self.goToViewExecutives).pack(pady=2.5)
         Button(self, text="View Role History",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="View Late Payments",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="View Active vs Inactive Proportion",font=("Helvetica", 12)).pack(pady=2.5)
@@ -1124,8 +1222,8 @@ class ReportMenu(Frame):
         self.master.show_page(ViewUnpaidMembers)
 
     def goToViewExecutives(self):
-        pass
-
+        self.master.show_page(ViewExecutives)
+        
     def goToViewRoleHistory(self):
         pass
 

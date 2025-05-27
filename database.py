@@ -634,25 +634,37 @@ class Database:
             print(f"Error occurred: {e}")
 
 #############################################################################################################################
-    def get_executives_by_year(self, organization_id, academic_year):
+    def get_executives_by_year(self, organization_id=None, academic_year=None):
         try:
-            self.cur.execute(
-                """SELECT m.name, m.role, mo.committee, mo.academic_year, mo.semester FROM member m JOIN member_org mo ON m.member_id = mo.member_id
-            JOIN organization o ON mo.organization_id = o.organization_id WHERE o.organization_id = ? AND mo.committee = "Executive" AND mo.academic_year = ?""",
-                (organization_id, academic_year),
-            )
+            query = """
+                SELECT m.member_id, m.name, o.organization_name, mo.role, mo.committee, mo.academic_year
+                FROM member m
+                JOIN member_org mo ON m.member_id = mo.member_id
+                JOIN organization o ON mo.organization_id = o.organization_id
+                WHERE mo.committee = "Executive"
+            """
+
+            params = []
+
+            if organization_id is not None:
+                query += " AND o.organization_id = ?"
+                params.append(organization_id)
+
+            if academic_year is not None:
+                query += " AND mo.academic_year = ?"
+                params.append(academic_year)
+
+            self.cur.execute(query, params)
             result = self.cur.fetchall()
 
             if result is None:
-                print("get_executives_by_year: None returned")
                 return []
 
             return result
-            
+
         except mariadb.Error as e:
             print(f"Error occurred: {e}")
             return []
-
     # History of all the roles within the org?
     def get_role_history(self, organization_id, role):
         try:
