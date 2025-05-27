@@ -54,11 +54,17 @@ class App(Tk):
         frame.tkraise()
     
     def show_page(self, screen_class):
+        if screen_class in self.screens:
+            if getattr(screen_class, "killable", False):  # Only if 'killable' attribute is True
+                self.screens[screen_class].destroy()
+                del self.screens[screen_class]
+
+        # Create the page if it doesn't exist (or was just deleted)
         if screen_class not in self.screens:
-            # Create the frame, add it to the dictionary, and place it
             frame = screen_class(self)
             self.screens[screen_class] = frame
             frame.place(relwidth=1, relheight=1)
+
         self.screens[screen_class].tkraise()
 
     def goToLanding(self):

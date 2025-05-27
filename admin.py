@@ -283,6 +283,7 @@ class ViewMembersPage(Frame):
         self.on_filter_changed()
 
     def goBack(self):
+        self.currentMember = None
         self.master.show_page(AdminMenu)
 
     def on_filter_changed(self, *args):
@@ -311,10 +312,14 @@ class ViewMembersPage(Frame):
             self.editBtn.config(state="normal")  
             self.deleteBtn.config(state="normal")  
             self.addFeeBtn.config(state="normal")  
+            selected_values = self.tree.item(self.tree.selection()[0], 'values')
+            self.currentMember = selected_values 
         else:
+            self.tree.selection_remove(self.tree.selection())
             self.editBtn.config(state="disabled") 
             self.deleteBtn.config(state="disabled") 
             self.addFeeBtn.config(state="disabled") 
+            self.currentMember = None
 
     def goToEditMemberPage(self):
         if hasattr(self, 'currentMember'):
@@ -331,6 +336,7 @@ class ViewMembersPage(Frame):
     def on_edit(self):
         selected_values = self.tree.item(self.tree.selection()[0], 'values')
         self.currentMember = selected_values
+        self.master.currentMember = self.currentMember
         self.goToEditMemberPage()
     
     def on_delete(self):
@@ -347,6 +353,7 @@ class ViewMembersPage(Frame):
         selected_values = self.tree.item(self.tree.selection()[0], 'values')
         print(selected_values)
         self.currentMember = selected_values
+        self.master.currentMember = self.currentMember
         self.goToAddFeePage()
         
 
@@ -494,6 +501,8 @@ class ViewOrganizationalMembersPage(Frame):
             return {}
 
 class EditMemberPage(Frame):
+    killable = True
+    
     def __init__(self, master):
         super().__init__(master)
         self.user = self.master.user
@@ -597,6 +606,7 @@ class EditMemberPage(Frame):
         row += 1
 
     def goBack(self):
+        self.master.currentMember = None
         self.master.show_page(ViewMembersPage)
 
     def onSubmit(self):
@@ -809,6 +819,8 @@ class AddFinancialRecordPage(Frame):
             return {}
         
 class AddFeePage(Frame):
+    killable = True
+
     def __init__(self, master):
         super().__init__(master)
         self.user = self.master.user
@@ -880,6 +892,7 @@ class AddFeePage(Frame):
         row += 1
 
     def goBack(self):
+        self.master.currentMember = None
         self.master.show_page(ViewMembersPage)
         self.selectedOrg.set("")
         self.descriptionField.clear()
@@ -944,6 +957,26 @@ class AddFeePage(Frame):
         else:
             messagebox.showinfo("Success", f"Fee of PHP {amount} was created for {self.currentMember[1]}!")
             self.goBack()
+
+class ViewUnpaidMembers(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+        self.db:Database = self.master.db
+        self.style = ttk.Style()
+        self.style.theme_use('clam')
+        self.pack(fill=BOTH, expand=True)
+        self.cur = self.master.cur
+
+        organizations = self.getOrganizationsList()
+        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
+        orgDisplay.sort()
+        orgDisplay.insert(0, "All")
+
+        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+        self.idLookup["All"] = None
+
+        Label(self, text="View Members", fg="Black", font=("Helvetica", 18)).pack(pady=8)
 
 
 
