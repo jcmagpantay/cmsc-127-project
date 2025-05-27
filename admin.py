@@ -881,6 +881,13 @@ class AddFeePage(Frame):
 
     def goBack(self):
         self.master.show_page(ViewMembersPage)
+        self.selectedOrg.set("")
+        self.descriptionField.clear()
+        self.amountField.clear()
+        self.dueDateField.clear()
+        self.feeTypeField.clear()
+        self.academicYearField.clear()
+        self.semesterField.clear()
         
     def getMemberOrganizations(self):
         memberID = self.currentMember[0]
@@ -963,6 +970,9 @@ class LimitedEntry(Entry):
     
     def isEmpty(self):
         return len(self.var.get()) == 0
+    
+    def clear(self):
+        self.var.set("")
 
 class CreateMenu(Frame):
     def __init__(self, master):
@@ -973,7 +983,6 @@ class CreateMenu(Frame):
         Button(self, text="Member",font=("Helvetica", 12), command=self.goToAddMemberPage).pack(pady=2.5)
         Button(self, text="Organization",font=("Helvetica", 12), command=self.goToCreateOrganizationPage).pack(pady=2.5)
         Button(self, text="Financial Record",font=("Helvetica", 12), command=self.goToAddFinancialRecordPage).pack(pady=2.5)
-        Button(self, text="Fee",font=("Helvetica", 12)).pack(pady=2.5)
         Button(self, text="Back",font=("Helvetica", 12), command=self.goBack).pack(pady=2.5)
     
     def goToAddMemberPage(self):
@@ -985,9 +994,6 @@ class CreateMenu(Frame):
 
     def goToAddFinancialRecordPage(self):
         self.master.show_page(AddFinancialRecordPage)
-
-    def goToAddFeePage(self):
-        pass
 
     def goBack(self):
         self.master.show_page(AdminMenu)
