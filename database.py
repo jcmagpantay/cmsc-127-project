@@ -791,8 +791,8 @@ class Database:
 
                     SELECT
                         org.organization_name,
-                        SUM(CASE WHEN f.payment_status = 'paid' THEN f.amount ELSE 0 END) AS "Paid Fees",
-                        SUM(CASE WHEN f.payment_status = 'unpaid' THEN f.amount ELSE 0 END) AS "Unpaid Fees"
+                        SUM(CASE WHEN f.payment_status = 'paid' THEN f.amount ELSE 0 END) AS paid_fees,
+                        SUM(CASE WHEN f.payment_status = 'unpaid' THEN f.amount ELSE 0 END) AS unpaid_fees
                     FROM
                         fee f
                     JOIN
