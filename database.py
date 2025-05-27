@@ -122,8 +122,6 @@ class Database:
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
 
-        
-        
         try:
             self.cur.execute(query, tuple(params))
 

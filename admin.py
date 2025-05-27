@@ -223,15 +223,16 @@ class ViewMembersPage(Frame):
 
         options.bind("<Configure>", on_options_configure)
 
-        Button(options, text="Back", font=("Helvetica", 12), command=self.goBack).pack(side=LEFT, padx=16)
+        Button(options, text="Back", font=("Helvetica", 12), command=self.goBack,).pack(side=LEFT, padx=16)
+        Button(options, text="Clear", font=("Helvetica", 12), command=lambda: self.tree.selection_remove(self.tree.selection())).pack(side=LEFT, padx=16)
 
         Label(options, text="Select a member to:", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=2)
 
-        editBtn = Button(options, text="Edit", font=("Helvetica", 12))
-        editBtn.pack(side=LEFT, padx=4)
+        self.editBtn = Button(options, text="Edit", font=("Helvetica", 12), state="disabled", command=lambda: print("I am working"))
+        self.editBtn.pack(side=LEFT, padx=4)
 
-        deleteBtn = Button(options, text="Delete", font=("Helvetica", 12))
-        deleteBtn.pack(side=LEFT, padx=4)
+        self.deleteBtn = Button(options, text="Delete", font=("Helvetica", 12), state="disabled")
+        self.deleteBtn.pack(side=LEFT, padx=4)
 
         Label(options, text="Name", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=4)
         self.nameVar = StringVar()
@@ -260,6 +261,7 @@ class ViewMembersPage(Frame):
 
         tree_h_scrollbar = Scrollbar(self, orient="horizontal", command=self.tree.xview)
         self.tree.configure(xscrollcommand=tree_h_scrollbar.set)
+        self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
 
         self.tree.pack(fill=BOTH, expand=True)  # Make sure treeview is packed
         tree_h_scrollbar.pack(side=BOTTOM, fill=X)  
@@ -291,6 +293,15 @@ class ViewMembersPage(Frame):
                 row["member_id"], row["name"], row["gender"],
                 row["degree_program"], row["password"], row["access_level"],
                 row["username"]))
+    
+    def on_tree_select(self, event):
+        selected = self.tree.selection()
+        if selected:
+            self.editBtn.config(state="normal")  
+            self.deleteBtn.config(state="normal")  
+        else:
+            self.editBtn.config(state="disabled") 
+            self.deleteBtn.config(state="disabled") 
 
 
 class ViewOrganizationalMembersPage(Frame):
