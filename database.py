@@ -241,23 +241,6 @@ class Database:
             return []
         
     def get_unpaid_fees(self, member_id):
-        """
-    Retrieves a list of unpaid fees for a specific member.
-
-    Args:
-        member_id (int): The ID of the member whose unpaid fees are to be retrieved.
-
-    Returns:
-        List[Dict[str, Any]]: A list of dictionaries, each containing:
-        - 'organization_name' (str)
-        - 'fee_type' (str)
-        - 'amount' (float or Decimal)
-        - 'due_date' (datetime or str)
-        - 'payment_status' (str)
-        - 'academic_year' (str)
-        - 'semester' (str)
-        Returns an empty list if no unpaid fees are found or if an error occurs.
-    """
         try:
             self.cur.execute(
                 """SELECT o.organization_name, f.fee_type, f.amount, f.due_date, f.payment_status, fr.academic_year, fr.semester,
@@ -277,24 +260,6 @@ class Database:
             return []
 
     def create_user(self, name, gender, degree_program, password, access_level, username):
-        """
-    Creates a new user in the database.
-
-    Args:
-        name (str): Full name of the user.
-        gender (str): Gender of the user.
-        degree_program (str): Degree program the user is enrolled in.
-        password (str): User's password.
-        access_level (int): Access level (e.g., 1 = member, 2 = admin).
-        username (str): Unique username for the user.
-
-    Returns:
-        int: The ID of the newly created user on success.
-        None: If creation failed.
-
-    Side Effects:
-        Commits the change to the database.
-    """
         try:
             self.cur.execute(
                 """INSERT INTO member (`name`, `gender`, `degree_program`,
@@ -315,20 +280,6 @@ class Database:
             return None
     
     def create_org(self, organization_name, date_established):
-        """
-    Creates a new organization in the database.
-
-    Args:
-        organization_name (str): The name of the organization.
-        date_established (str): The date the organization was established (format: YYYY-MM-DD).
-
-    Returns:
-        int: The ID of the newly created organization on success.
-        None: If creation failed.
-
-    Side Effects:
-        Commits the change to the database.
-    """
         try:
             self.cur.execute(
                 """INSERT INTO organization (`organization_name`,`date_established`) VALUES (?, ?)""",
@@ -352,26 +303,6 @@ class Database:
         batch, status, role, committee,
         acad_year, semester
         ):
-        """
-    Creates a new membership entry in the database.
-
-    Args:
-        member_id (int): ID of the member.
-        organization_id (int): ID of the organization.
-        batch (str): Batch of the member.
-        status (str): Membership status.
-        role (str): Role in the organization.
-        committee (str): Committee assigned.
-        acad_year (str): Academic year.
-        semester (str): Semester.
-
-    Returns:
-        int: The ID of the newly created membership on success.
-        None: If creation failed.
-
-    Side Effects:
-        Commits the change to the database.
-    """
         try:
             self.cur.execute(
                 """INSERT INTO member_org VALUES
@@ -700,36 +631,41 @@ class Database:
 
 
 
-    def get_all_late_payments(self, organization_id, academic_year, semester):
-        
+    def get_all_late_payments(self, organization_id=None, academic_year=None, semester=None):
         try:
-            self.cur.execute(
-                """
-                    SELECT m.name, f.*
-                    FROM
-                        fee f
-                    JOIN
-                        financial_record fr ON f.record_id = fr.record_id
-                    JOIN
-                        organization org ON fr.organization_id = org.organization_id
-                    JOIN
-                        member_org mo ON org.organization_id = mo.organization_id
-                    JOIN
-                        member m ON mo.member_id = m.member_id
-                    WHERE
-                        f.pay_date > f.due_date
-                    AND
-                        f.payment_status = 'paid'
-                    AND
-                        org.organization_id = ?
-                    AND
-                        fr.academic_year = ?
-                    AND
-                        fr.semester = ?;
-            """,
-                (organization_id, academic_year, semester),
-            )
+            query = """
+                SELECT m.name, f.*
+                FROM
+                    fee f
+                JOIN
+                    financial_record fr ON f.record_id = fr.record_id
+                JOIN
+                    organization org ON fr.organization_id = org.organization_id
+                JOIN
+                    member_org mo ON org.organization_id = mo.organization_id
+                JOIN
+                    member m ON mo.member_id = m.member_id
+                WHERE
+                    f.pay_date > f.due_date
+                AND
+                    f.payment_status = 'paid'
+            """
 
+            params = []
+
+            if organization_id is not None:
+                query += " AND org.organization_id = ?"
+                params.append(organization_id)
+
+            if academic_year is not None:
+                query += " AND fr.academic_year = ?"
+                params.append(academic_year)
+
+            if semester is not None:
+                query += " AND fr.semester = ?"
+                params.append(semester)
+
+            self.cur.execute(query, tuple(params))
             result = self.cur.fetchall()
 
             if result is None:
@@ -740,7 +676,8 @@ class Database:
 
         except mariadb.Error as e:
             print(f"Error has occurred: {e}")
-            return
+            return []
+
 
     def get_organization_active_proportion(self, organization_id, limit):
         try:
