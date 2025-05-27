@@ -228,7 +228,7 @@ class ViewMembersPage(Frame):
 
         Label(options, text="Select a member to:", fg="Black", font=("Helvetica", 12)).pack(side=LEFT, padx=2)
 
-        self.editBtn = Button(options, text="Edit", font=("Helvetica", 12), state="disabled", command=lambda: print("I am working"))
+        self.editBtn = Button(options, text="Edit", font=("Helvetica", 12), state="disabled", command= self.on_edit)
         self.editBtn.pack(side=LEFT, padx=4)
 
         self.deleteBtn = Button(options, text="Delete", font=("Helvetica", 12), state="disabled")
@@ -270,6 +270,9 @@ class ViewMembersPage(Frame):
             self.tree.heading(col, text=col)
             self.tree.column(col, anchor=CENTER)
         
+        self.refresh()
+
+    def refresh(self):
         self.on_filter_changed()
 
     def goBack(self):
@@ -302,6 +305,18 @@ class ViewMembersPage(Frame):
         else:
             self.editBtn.config(state="disabled") 
             self.deleteBtn.config(state="disabled") 
+
+    def goToEditMemberPage(self):
+        if hasattr(self, 'currentMember'):
+            print("I have that")
+            self.master.currentMember = self.currentMember
+            self.master.show_page(EditMemberPage)
+
+    def on_edit(self):
+        selected_values = self.tree.item(self.tree.selection()[0], 'values')
+        print(selected_values)
+        self.currentMember = selected_values
+        self.goToEditMemberPage()
 
 
 class ViewOrganizationalMembersPage(Frame):
@@ -453,13 +468,7 @@ class EditMemberPage(Frame):
         self.user = self.master.user
         self.cur = self.master.cur
         self.db:Database = self.master.db
-
-        organizations = self.getOrganizationsList()
-        print("Dictionary fetched from DB:", organizations)
-        orgDisplay = [f"{org_id} - {org_name}" for org_id, org_name in organizations.items()]
-        orgDisplay.sort()
-        print("Displaying:", orgDisplay)
-        self.idLookup = {f"{org_id} - {org_name}": org_id for org_id, org_name in organizations.items()}
+        self.currentMember = self.master.currentMember
 
         container = Frame(self)
         container.pack(anchor='n', pady=16)
@@ -471,157 +480,77 @@ class EditMemberPage(Frame):
 
         # Name
         Label(container, text="Name*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.nameField = LimitedEntry(container, char_limit=50)
-        self.nameField.grid(row=row, column=1, padx=8, pady=4)
+        self.nameVar = StringVar(value=self.currentMember[1])
+        LimitedEntry(container, char_limit=50, textvariable = self.nameVar).grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Gender
         Label(container, text="Gender*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.genderField = LimitedEntry(container, char_limit=6)
-        self.genderField.grid(row=row, column=1, padx=8, pady=4)
+        self.genderVar = StringVar(value=self.currentMember[2])
+        LimitedEntry(container, char_limit=6, textvariable=self.genderVar).grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Degree Program
         Label(container, text="Degree Program*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.degreeProgramField = LimitedEntry(container, char_limit=50)
-        self.degreeProgramField.grid(row=row, column=1, padx=8, pady=4)
+        self.degreeProgramVar = StringVar(value=self.currentMember[3])
+        LimitedEntry(container, char_limit=50, textvariable=self.degreeProgramVar).grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Username
         Label(container, text="Username*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.usernameField = LimitedEntry(container, char_limit=20)
-        self.usernameField.grid(row=row, column=1, padx=8, pady=4)
+        self.usernameVar = StringVar(value=self.currentMember[6])
+        LimitedEntry(container, char_limit=20, textvariable=self.usernameVar).grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Password
         Label(container, text="Password*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.passwordField = LimitedEntry(container, char_limit=20, show="•")
-        self.passwordField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-
-        Label(container, text="Select organization", fg="Black", font=("Helvetica", 12)).grid(row=row, column=0, columnspan=2)
-        row += 1
-
-        self.selectedOrg = StringVar()
-        organizationSelect = ttk.Combobox(container, textvariable=self.selectedOrg, values=orgDisplay)
-        organizationSelect.grid(row=row, column=0, columnspan=2, pady=4 )
-        row += 1
-
-        Label(container, text="Batch*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.batchField = LimitedEntry(container, char_limit=20)
-        self.batchField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-        
-        # TODO: Make this a dropdown
-        Label(container, text="Org Status*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.statusField = LimitedEntry(container, char_limit=10)
-        self.statusField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-
-        Label(container, text="Role*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.roleField = LimitedEntry(container, char_limit=10)
-        self.roleField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-
-        Label(container, text="Committee*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.committeeField = LimitedEntry(container, char_limit=20)
-        self.committeeField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-
-        # TODO: ADD VALIDATION: YYYY - YYYY
-        Label(container, text="Academic Year*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.academicYearField = LimitedEntry(container, char_limit=20)
-        self.academicYearField.grid(row=row, column=1, padx=8, pady=4)
-        row += 1
-
-        # TODO: ADD VALIDATION: 1 or 2
-        Label(container, text="Semester*", fg="Black", font=("Helvetica", 12), anchor="w", width=15).grid(row=row, column=0, sticky="w", padx=8, pady=4)
-        self.semesterField = LimitedEntry(container, char_limit=20)
-        self.semesterField.grid(row=row, column=1, padx=8, pady=4)
+        self.passwordVar = StringVar(value=self.currentMember[4])
+        LimitedEntry(container, char_limit=20, show="•", textvariable = self.passwordVar).grid(row=row, column=1, padx=8, pady=4)
         row += 1
 
         # Button
-        Button(container, text="Add Member", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
+        Button(container, text="Save Edits", font=("Helvetica", 12), command=self.onSubmit).grid(row=row, column=0, columnspan=2, pady=4)
         row += 1
 
         Button(container, text="Go Back", font=("Helvetica", 12), command=self.goBack).grid(row=row, column=0, columnspan=2, pady=4)
         row += 1
 
     def goBack(self):
-        self.master.show_page(AdminMenu)
+        self.master.show_page(ViewMembersPage)
 
     def onSubmit(self):
-        if (self.nameField.isEmpty() or
-            self.genderField.isEmpty() or
-            self.degreeProgramField.isEmpty() or
-            self.usernameField.isEmpty() or
-            self.passwordField.isEmpty() or
-            (len(self.selectedOrg.get()) == 0) or
-            self.batchField.isEmpty() or
-            self.statusField.isEmpty() or
-            self.roleField.isEmpty() or
-            self.committeeField.isEmpty() or
-            self.academicYearField.isEmpty() or
-            self.semesterField.isEmpty()
-        ):
-            messagebox.showerror("Creating Member Error", "Please input required fields.")
-            return
+        name = self.nameVar.get().strip() or None
+        gender = self.genderVar.get().strip() or None
+        degreeProgram = self.degreeProgramVar.get().strip() or None
+        username = self.usernameVar.get().strip() or None
+        password = self.passwordVar.get().strip() or None
 
-        if (self.db.username_exists(self.usernameField.get())):
-            messagebox.showerror("Creating Member Error", "Username is already existing.")
-            return
-
-        memberID = self.db.create_user(
-            name=self.nameField.get(),
-            gender=self.genderField.get(),
-            degree_program=self.degreeProgramField.get(),
-            password=self.passwordField.get(),
-            access_level=1,
-            username=self.usernameField.get()
-        )
+        memberID = self.db.update_member(
+            member_id=self.currentMember[0],
+            name= name,
+            gender= gender,
+            degree_program= degreeProgram,
+            password= password,
+            username= username
+            )
         
         if (memberID is None):
-            messagebox.showerror("Creating Member Error", "Error in creating member.")
-            return
-        
-        # Create membership
-        membership = self.db.create_membership(
-            member_id= memberID,
-            organization_id= self.idLookup[self.selectedOrg.get()],
-            batch= self.batchField.get(), 
-            status= self.statusField.get(),
-            committee= self.committeeField.get(),
-            role= self.roleField.get(),
-            acad_year= self.academicYearField.get(),
-            semester= self.semesterField.get()
-        )
-        
-        if (membership is None):
-            messagebox.showerror("Creating Member Error", "Error in creating membership.")
+            messagebox.showerror("Updating Member Error", "Error in editing member.")
             return
         else:
-            messagebox.showinfo("Success!", f"Successfully added {self.nameField.get()} to {self.selectedOrg.get()}")
-            return
-        
-    def getOrganizationsList(self):
-        try:
-            self.cur.execute("SELECT organization_id, organization_name FROM organization")
-            rows = self.cur.fetchall()
-            print("Rows fetched from DB:", rows)
-            return {row['organization_id']: row['organization_name'] for row in rows}
-        except mariadb.Error as e:
-            print(f"Error in fetching organizations: {e}")
-            return {}
+            self.master.screens[ViewMembersPage].refresh()
+            self.goBack()
+            messagebox.showinfo("Success", f"Successfully edited Member {memberID}")
 
-        
-
+    
 class LimitedEntry(Entry):
     def __init__(self, master=None, char_limit=10, **kwargs):
         self.char_limit = char_limit
-        self.var = StringVar()
+
+        self.var = kwargs.pop("textvariable", StringVar())
+
         super().__init__(master, textvariable=self.var, **kwargs)
 
-        # register validation command
         vcmd = self.register(self.on_validate)
         self.config(validate="key", validatecommand=(vcmd, '%P'))
 
@@ -636,3 +565,6 @@ class LimitedEntry(Entry):
     
     def isEmpty(self):
         return len(self.var.get()) == 0
+
+    
+    
