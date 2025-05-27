@@ -321,8 +321,7 @@ class Database:
     """
         try:
             self.cur.execute(
-                """INSERT INTO organization (`organization_name`,
-                `date_established)VALUES (?, ?)""",
+                """INSERT INTO organization (`organization_name`,`date_established`) VALUES (?, ?)""",
                 (organization_name, date_established),
             )
         except mariadb.Error as e:
@@ -505,8 +504,8 @@ class Database:
         try:
             self.cur.execute(query, values)
             if self.cur.rowcount == 0:
-                print("Update failed: No rows affected.")
-                return None
+                print("No rows affected.")
+                return member_id
             self.conn.commit()
             print("Successfully updated member!")
             return member_id

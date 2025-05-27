@@ -61,6 +61,9 @@ class App(Tk):
             frame.place(relwidth=1, relheight=1)
         self.screens[screen_class].tkraise()
 
+    def goToLanding(self):
+        self.show_page(LandingPage)
+
 #landing page
 class LandingPage(Frame):
     def __init__(self, master):
