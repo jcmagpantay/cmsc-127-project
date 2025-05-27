@@ -998,5 +998,46 @@ class CreateMenu(Frame):
     def goBack(self):
         self.master.show_page(AdminMenu)
 
+class ReportMenu(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.user = self.master.user
+
+        Label(self, text="Generated report", fg="Black",font=("Helvetica", 18)).pack(pady=(32,8))
+        Button(self, text="View Unpaid Members",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Executives",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Role History",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Late Payments",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Active vs Inactive Proportion",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Alumni As Of",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Total Paid and Unpaid",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="View Highest Debt",font=("Helvetica", 12)).pack(pady=2.5)
+        Button(self, text="Back",font=("Helvetica", 12), command=self.goBack).pack(pady=2.5)
     
+    def goToViewUnpaid(self):
+        pass
+
+    def goToViewExecutives(self):
+        pass
+
+    def goToViewRoleHistory(self):
+        pass
+
+    def goToViewLatePayments(self):
+        pass
+
+    def goToViewActiveProportion(self):
+        pass
+
+    def goToViewAlumniAsOf(self):
+        pass
+
+    def goToViewTotalPaidAndUnpaid(self):
+        pass
+
+    def goToViewHighestDebt(self):
+        pass
+
+    def goBack(self):
+        self.master.show_page(AdminMenu)
     
