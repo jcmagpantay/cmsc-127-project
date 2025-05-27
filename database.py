@@ -91,10 +91,41 @@ class Database:
             print(f"Error in get_my_organizations: {e}")
             return []
         
-    def get_all_members(self):
+    def get_all_members(
+        self,
+        name= None,
+        gender=None,
+        degree_program=None,
+        username=None
+    ):
         query = "SELECT * FROM member"  
+
+        params = []
+        conditions = []
+
+        if name is not None:
+            conditions.append("name LIKE ?")
+            params.append(f"%{name}%")
+        
+        if gender is not None:
+            conditions.append("gender LIKE ?")
+            params.append(f"{gender}%")
+
+        if degree_program is not None:
+            conditions.append("degree_program LIKE ?")
+            params.append(f"%{degree_program}%")
+
+        if username is not None:
+            conditions.append("username LIKE ?")
+            params.append(f"%{username}%")
+
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+
+        
+        
         try:
-            self.cur.execute(query,)
+            self.cur.execute(query, tuple(params))
 
             result = self.cur.fetchall()
 
