@@ -666,22 +666,26 @@ class Database:
             print(f"Error occurred: {e}")
             return []
     # History of all the roles within the org?
-    def get_role_history(self, organization_id, role):
+    def get_role_history(self, role, organization_id = None):
         try:
-            self.cur.execute(
-                """
-                    SELECT
-                    m.name, mo.role, mo.committee, mo.academic_year, mo.semester
-                    FROM MEMBER m
-                    JOIN MEMBER_ORG mo ON m.member_id = mo.member_id
-                    JOIN ORGANIZATION o ON mo.organization_id = o.organization_id
-                    WHERE o.organization_id = ?
-                    AND mo.role = ?
-                    ORDER BY mo.academic_year DESC;
-                        """,
-                (organization_id, role),
-            )
+            query = """
+                SELECT
+                    m.member_id, m.name, o.organization_name, mo.role, mo.committee, mo.academic_year, mo.semester
+                FROM member m
+                JOIN member_org mo ON m.member_id = mo.member_id
+                JOIN organization o ON mo.organization_id = o.organization_id
+                WHERE mo.role = ?
+            """
+            params = []
+            params.append(role)
 
+            if organization_id is not None:
+                query += " AND o.organization_id = ?"
+                params.append(organization_id)
+
+            query += " ORDER BY mo.academic_year DESC;"
+
+            self.cur.execute(query, tuple(params))
             result = self.cur.fetchall()
 
             if result is None:
@@ -689,10 +693,12 @@ class Database:
                 return []
 
             return result
-        
+
         except mariadb.Error as e:
             print(f"Error occurred: {e}")
             return []
+
+
 
     def get_all_late_payments(self, organization_id, academic_year, semester):
         
