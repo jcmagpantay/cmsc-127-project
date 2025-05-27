@@ -948,31 +948,7 @@ class AddFeePage(Frame):
 
 
     
-class LimitedEntry(Entry):
-    def __init__(self, master=None, char_limit=10, **kwargs):
-        self.char_limit = char_limit
 
-        self.var = kwargs.pop("textvariable", StringVar())
-
-        super().__init__(master, textvariable=self.var, **kwargs)
-
-        vcmd = self.register(self.on_validate)
-        self.config(validate="key", validatecommand=(vcmd, '%P'))
-
-    def on_validate(self, proposed_text):
-        return len(proposed_text) <= self.char_limit
-
-    def set_limit(self, new_limit):
-        self.char_limit = new_limit
-    
-    def get(self) ->  str:
-        return self.var.get()
-    
-    def isEmpty(self):
-        return len(self.var.get()) == 0
-    
-    def clear(self):
-        self.var.set("")
 
 class CreateMenu(Frame):
     def __init__(self, master):
@@ -1041,3 +1017,28 @@ class ReportMenu(Frame):
     def goBack(self):
         self.master.show_page(AdminMenu)
     
+class LimitedEntry(Entry):
+    def __init__(self, master=None, char_limit=10, **kwargs):
+        self.char_limit = char_limit
+
+        self.var = kwargs.pop("textvariable", StringVar())
+
+        super().__init__(master, textvariable=self.var, **kwargs)
+
+        vcmd = self.register(self.on_validate)
+        self.config(validate="key", validatecommand=(vcmd, '%P'))
+
+    def on_validate(self, proposed_text):
+        return len(proposed_text) <= self.char_limit
+
+    def set_limit(self, new_limit):
+        self.char_limit = new_limit
+    
+    def get(self) ->  str:
+        return self.var.get()
+    
+    def isEmpty(self):
+        return len(self.var.get()) == 0
+    
+    def clear(self):
+        self.var.set("")
