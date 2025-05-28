@@ -1800,6 +1800,19 @@ class ViewHighestDebt(Frame):
                 row["debt"]
             ))
 
+    def getOrganizationsList(self):
+        try:
+            self.cur.execute("SELECT organization_id, organization_name FROM organization")
+            rows = self.cur.fetchall()
+            print("Rows fetched from DB:", rows)
+            return {row['organization_id']: row['organization_name'] for row in rows}
+        except mariadb.Error as e:
+            print(f"Error in fetching organizations: {e}")
+            return {}
+        
+    def goBack(self):
+        self.master.show_page(ReportMenu)
+
 
 
 class CreateMenu(Frame):
